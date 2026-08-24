@@ -13,3 +13,9 @@ initWorkProtocol();
 import("./motion/reveal.js")
   .then(({ initMotion }) => initMotion())
   .catch((err) => console.warn("[v8.1] motion layer unavailable, page remains static:", err));
+
+// 常驻场景层:与揭示层各自独立成 chunk、各自 catch。
+// 场景失败时页面退回纯 DOM 版本,不影响文字、交互与揭示动效。
+import("./scene/index.js")
+  .then(({ initScene }) => initScene())
+  .catch((err) => console.warn("[v8.1] scene layer unavailable, page remains flat:", err));

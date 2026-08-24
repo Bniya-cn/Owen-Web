@@ -1,6 +1,6 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { CustomEase } from "gsap/CustomEase";
+import { setupGsap, prefersReducedMotion } from "./gsap-setup.js";
 
 // 与 motion.css 中 .motion-ready .section-reveal > * 的 :not() 链保持一致:
 // 列表类容器由下方的逐列表瀑布单独负责入场,不能再被章节级淡入驱动一次,
@@ -122,12 +122,10 @@ function buildMotion(reduceMotion) {
 }
 
 export function initMotion() {
-  gsap.registerPlugin(ScrollTrigger, CustomEase);
-  CustomEase.create("field-ease", "0.2,0,0,1");
-  gsap.defaults({ ease: "field-ease" });
+  setupGsap();
 
   // 只有确认动效层可用后才加这个类——它是 CSS 里"内容预置为隐藏"的开关。
   document.documentElement.classList.add("motion-ready");
 
-  buildMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  buildMotion(prefersReducedMotion());
 }
