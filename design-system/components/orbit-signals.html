@@ -1,0 +1,180 @@
+<!-- @dsCard group="Interactive" -->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Signal Orbit</title>
+<style>
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+  @font-face { font-family: "Cabinet Grotesk"; src: url("../assets/fonts/cabinet-grotesk-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+  :root {
+    --bg: #070a06;
+    --forest: #10170b;
+    --ink: #dfe6d6;
+    --muted: #a6b09a;
+    --quiet: #718064;
+    --signal: #c7f464;
+    --signal-light: #d7f685;
+    --signal-border: #e8ff9e;
+    --source-rgb: 79 106 49;
+    --middle-rgb: 49 67 34;
+    --support-rgb: 83 97 51;
+    --ease: cubic-bezier(0.2, 0, 0, 1);
+    --display: "Cabinet Grotesk", "PingFang SC", sans-serif;
+    --body: "Satoshi", "Avenir Next", "PingFang SC", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  button { font: inherit; }
+
+  body {
+    margin: 0; padding: 46px 44px 52px;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--body); -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    position: fixed; inset: 0; z-index: -1; content: ""; pointer-events: none;
+    background: radial-gradient(760px circle at 72% 40%, rgb(var(--middle-rgb) / 0.2), transparent 66%);
+  }
+
+  .kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    color: var(--signal); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .kicker::before { content: ""; width: 28px; height: 1px; background: var(--signal); }
+
+  h1 { margin: 18px 0 10px; font-family: var(--display); font-size: 40px; font-weight: 700; letter-spacing: -0.05em; line-height: 1; }
+  .intro { max-width: 58ch; margin: 0 0 40px; color: var(--muted); font-size: 13.5px; line-height: 1.8; }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 56px; align-items: center; }
+
+  /* ---- component ---- */
+  .field-orbit {
+    position: relative;
+    width: min(100%, 400px);
+    aspect-ratio: 1;
+    margin: 0 auto;
+    border: 1px solid rgb(199 244 100 / 0.18);
+    border-radius: 50%;
+    opacity: 0.9;
+  }
+  .field-orbit::before, .field-orbit::after {
+    position: absolute; inset: 12%; content: "";
+    border: 1px solid rgb(199 244 100 / 0.12); border-radius: 50%;
+  }
+  .field-orbit::after { inset: 31%; border-color: rgb(199 244 100 / 0.2); }
+
+  .field-orbit.is-pulsing::before, .field-orbit.is-pulsing::after { animation: orbit-pulse 600ms var(--ease); }
+  @keyframes orbit-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.02); } 100% { transform: scale(1); } }
+
+  .field-node {
+    position: absolute; display: grid;
+    width: 78px; height: 78px; place-items: center;
+    border: 1px solid rgb(199 244 100 / 0.32); border-radius: 50%;
+    color: var(--ink); background: rgb(16 23 11 / 0.62);
+    font-size: 11px; letter-spacing: 0.06em; text-align: center; cursor: pointer;
+    transition: transform 360ms var(--ease), border-color 360ms ease, background 360ms ease;
+  }
+  .field-node:hover, .field-node:focus-visible, .field-node.is-active {
+    border-color: var(--signal-border); background: rgb(var(--source-rgb) / 0.5);
+    outline: none; transform: scale(1.08);
+  }
+  .field-node::after {
+    position: absolute; width: 8px; height: 8px; border-radius: 50%; content: "";
+    background: var(--signal); box-shadow: 0 0 0 6px rgb(199 244 100 / 0.08);
+  }
+  .field-node:nth-child(1) { top: -3%; left: 43%; }
+  .field-node:nth-child(2) { top: 38%; right: -4%; }
+  .field-node:nth-child(3) { bottom: 6%; left: 34%; }
+  .field-node:nth-child(4) { top: 44%; left: -4%; }
+  .field-node:nth-child(1)::after { right: 8px; bottom: 6px; }
+  .field-node:nth-child(2)::after { bottom: 9px; left: 8px; }
+  .field-node:nth-child(3)::after { top: 8px; right: 7px; }
+  .field-node:nth-child(4)::after { top: 10px; right: 8px; }
+
+  .field-orbit__note {
+    position: absolute; left: 50%; bottom: 11%; transform: translateX(-50%);
+    width: min(72%, 220px); margin: 0;
+    color: var(--ink); font-size: 12.5px; line-height: 1.6; text-align: center;
+    opacity: 0; transition: opacity 260ms var(--ease); pointer-events: none;
+  }
+  .field-orbit__note.is-shown { opacity: 1; }
+
+  /* ---- spec panel ---- */
+  .spec { border-top: 1px solid rgb(var(--support-rgb) / 0.42); padding-top: 18px; }
+  .spec dt { color: var(--signal-light); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; margin-top: 16px; }
+  .spec dt:first-child { margin-top: 0; }
+  .spec dd { margin: 6px 0 0; color: var(--quiet); font-size: 11.5px; line-height: 1.75; }
+  .spec code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px; color: var(--muted); }
+
+  .note {
+    max-width: 70ch; margin-top: 44px; padding-top: 18px;
+    border-top: 1px solid rgb(var(--support-rgb) / 0.42);
+    color: var(--muted); font-size: 12.5px; line-height: 1.8;
+  }
+  .note strong { color: var(--ink); font-weight: 700; }
+
+  @media (max-width: 720px) {
+    .stage { grid-template-columns: 1fr; gap: 40px; }
+    .field-orbit { width: min(84%, 330px); }
+    .field-orbit__note { position: static; transform: none; width: auto; margin-top: 22px; }
+  }
+</style>
+</head>
+<body>
+  <span class="kicker">Interactive / Signal Field</span>
+  <h1>信号场</h1>
+  <p class="intro">首屏的可触发内在信号场。四个节点单选,选中后在环内揭示一句说明。这是全站交互语法的原型:<strong>单选、自持状态、一次性反馈</strong>。</p>
+
+  <div class="stage">
+    <div class="field-orbit" id="orbit">
+      <button class="field-node" type="button" aria-pressed="false" data-note="静止不是停滞,而是在安静中保留行动的力量。">定静</button>
+      <button class="field-node" type="button" aria-pressed="false" data-note="善意可以跨越文化、语言、性别与职位。">善意</button>
+      <button class="field-node" type="button" aria-pressed="false" data-note="把每一项工作都当成一次有趣的探索,享受过程。">进化</button>
+      <button class="field-node" type="button" aria-pressed="false" data-note="所思、所感、所愿高度一致,才有真正的内在相干。">同频</button>
+      <p class="field-orbit__note" id="note" aria-live="polite"></p>
+    </div>
+
+    <dl class="spec">
+      <dt>Structure</dt>
+      <dd>三层同心环 <code>1px</code> 描边,透明度 0.18 / 0.12 / 0.2。节点沿环周不均匀分布,刻意避免对称。</dd>
+      <dt>Node</dt>
+      <dd>78–96px 圆形,附一个 8px 信号点 + 6px 光环。点的位置每个节点各不相同。</dd>
+      <dt>Selection</dt>
+      <dd>单选,<code>aria-pressed</code> 互斥。重复点击同一节点不产生无效状态。</dd>
+      <dt>Feedback</dt>
+      <dd>选中时圆环播放一次 600ms 涟漪(<code>scale 1→1.02→1</code>),<strong>不循环</strong>。</dd>
+      <dt>Portrait</dt>
+      <dd>≤720px 说明文字脱离绝对定位,回到环下方的常规文档流,避免窄屏裁切。</dd>
+    </dl>
+  </div>
+
+  <p class="note"><strong>为什么是环而不是列表.</strong> 这四个特质之间没有顺序关系,列表会强加一个并不存在的优先级。环形排布让它们彼此平等,同时把首屏右侧的空白变成有内容的场域,而不是留白。</p>
+
+<script>
+  const orbit = document.getElementById("orbit");
+  const note = document.getElementById("note");
+  const nodes = [...orbit.querySelectorAll(".field-node")];
+  let timer = null;
+  nodes.forEach((node) => {
+    node.addEventListener("click", () => {
+      nodes.forEach((n) => {
+        const active = n === node;
+        n.classList.toggle("is-active", active);
+        n.setAttribute("aria-pressed", String(active));
+      });
+      note.textContent = node.dataset.note;
+      note.classList.add("is-shown");
+      orbit.classList.remove("is-pulsing");
+      void orbit.offsetWidth;
+      orbit.classList.add("is-pulsing");
+      clearTimeout(timer);
+      timer = setTimeout(() => orbit.classList.remove("is-pulsing"), 650);
+    });
+  });
+</script>
+</body>
+</html>

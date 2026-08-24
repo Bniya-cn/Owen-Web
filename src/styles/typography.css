@@ -1,0 +1,57 @@
+.field-kicker {
+display: inline-flex;
+align-items: center;
+gap: 10px;
+color: var(--signal);
+font-size: 12px;
+font-weight: 700;
+letter-spacing: 0.16em;
+text-transform: uppercase;
+}
+
+.field-kicker::before {
+width: 28px;
+height: 1px;
+content: "";
+background: var(--signal);
+}
+
+.field-title {
+max-width: 8.5ch;
+margin: 20px 0 18px;
+color: var(--ink);
+font-family: "Cabinet Grotesk", "Clash Display", "Avenir Next", "PingFang SC", sans-serif;
+font-size: clamp(56px, 9vw, 146px);
+font-weight: 700;
+letter-spacing: -0.055em;
+line-height: 0.98;
+}
+
+.field-lead {
+max-width: 34ch;
+margin: 0;
+color: var(--muted);
+font-size: clamp(18px, 2vw, 27px);
+line-height: 1.5;
+}
+
+.field-copy {
+max-width: 58ch;
+margin: 26px 0 0;
+color: var(--muted);
+font-size: 15px;
+line-height: 1.9;
+}
+
+.field-copy strong {
+color: var(--ink);
+font-weight: 650;
+}
+
+.field-stamp {
+display: inline-block;
+margin-top: 28px;
+color: var(--warm);
+font-size: 11px;
+letter-spacing: 0.16em;
+}

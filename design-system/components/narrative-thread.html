@@ -1,0 +1,158 @@
+<!-- @dsCard group="Narrative" -->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Thought Thread</title>
+<style>
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-500.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+  @font-face { font-family: "Cabinet Grotesk"; src: url("../assets/fonts/cabinet-grotesk-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+  :root {
+    --bg: #070a06;
+    --ink: #dfe6d6;
+    --muted: #a6b09a;
+    --quiet: #718064;
+    --signal: #c7f464;
+    --signal-light: #d7f685;
+    --support-rgb: 83 97 51;
+    --ease: cubic-bezier(0.2, 0, 0, 1);
+    --display: "Cabinet Grotesk", "PingFang SC", sans-serif;
+    --body: "Satoshi", "Avenir Next", "PingFang SC", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0; padding: 46px 44px 52px;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--body); -webkit-font-smoothing: antialiased;
+  }
+
+  .kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    color: var(--signal); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .kicker::before { content: ""; width: 28px; height: 1px; background: var(--signal); }
+
+  h1 { margin: 18px 0 10px; font-family: var(--display); font-size: 40px; font-weight: 700; letter-spacing: -0.05em; line-height: 1; }
+  .intro { max-width: 60ch; margin: 0 0 44px; color: var(--muted); font-size: 13.5px; line-height: 1.8; }
+  .intro strong { color: var(--ink); font-weight: 700; }
+
+  h2 {
+    margin: 0 0 24px; padding-bottom: 11px;
+    border-bottom: 1px solid rgb(var(--support-rgb) / 0.42);
+    font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink);
+  }
+  section { margin-bottom: 50px; }
+
+  /* ---- thought thread ---- */
+  .thought-thread {
+    position: relative; max-width: 42ch; margin: 0;
+    padding: 24px 0 0; color: var(--ink);
+    font-size: 25px; font-weight: 500; line-height: 1.55;
+  }
+  .thought-thread::before {
+    position: absolute; top: 0; left: 0;
+    width: min(220px, 42%); height: 1px; content: "";
+    background: linear-gradient(90deg, var(--signal), transparent);
+  }
+  .thought-thread em { color: var(--signal-light); font-style: normal; }
+  .thought-source {
+    display: block; margin-top: 12px;
+    color: var(--quiet); font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+  }
+
+  .variants { display: grid; gap: 40px; }
+
+  /* ---- source note ---- */
+  .source-note {
+    max-width: 54ch; margin-top: 0;
+    border-top: 1px solid rgb(var(--support-rgb) / 0.42); color: var(--muted);
+  }
+  .source-note summary {
+    display: flex; min-height: 44px; width: fit-content;
+    align-items: center; gap: 12px;
+    color: var(--signal-light); cursor: pointer; font-size: 12px; list-style: none;
+  }
+  .source-note summary::-webkit-details-marker { display: none; }
+  .source-note summary::after {
+    content: "+"; color: var(--signal); font-size: 18px; line-height: 1;
+    transition: transform 240ms var(--ease);
+  }
+  .source-note[open] summary::after { transform: rotate(45deg); }
+  .source-note__body { margin: 0; padding: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.9; }
+
+  /* ---- poem ---- */
+  .poem-archive {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 52px; padding-top: 4px;
+  }
+  .poem-work__title { color: var(--signal-light); font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+  .poem-work__body {
+    margin: 18px 0 0; color: var(--ink);
+    font-size: 19px; line-height: 1.95; white-space: pre-line;
+  }
+  .poem-work__note { max-width: 34ch; margin: 18px 0 0; color: var(--quiet); font-size: 12px; line-height: 1.7; }
+
+  .note {
+    max-width: 70ch; margin-top: 6px; padding-top: 18px;
+    border-top: 1px solid rgb(var(--support-rgb) / 0.42);
+    color: var(--muted); font-size: 12.5px; line-height: 1.8;
+  }
+  .note strong { color: var(--ink); font-weight: 700; }
+</style>
+</head>
+<body>
+  <span class="kicker">Narrative / Inner Thread</span>
+  <h1>内在线索</h1>
+  <p class="intro">承载诗句与觉察记录的组件族。它们是叙事的第二条线——<strong>不是装饰引文,而是判断与行动的来源</strong>。因此它们嵌在正文之间,不放进单独的引文画廊或卡片墙。</p>
+
+  <section>
+    <h2>Thought Thread · 诗句线索</h2>
+    <div class="variants">
+      <p class="thought-thread">伟大不能被计划,<em>但可以在实践中偶遇,在碰撞中诞生。</em><span class="thought-source">30天觉察记录</span></p>
+      <p class="thought-thread">壮怀未老鬓未霜,<em>惊觉故乡成他乡。</em><span class="thought-source">《春行》</span></p>
+      <p class="thought-thread">千沟万壑独自开,未期君自远方来。<br /><em>此去前路莫孤旅,宜将山花处处栽。</em><span class="thought-source">《山花》</span></p>
+      <p class="thought-thread">不是等待新的太阳,<em>而是点亮群星。</em></p>
+    </div>
+    <p class="note"><strong>规格.</strong> 顶部一条 220px 渐变短线作为起始标记,不用引号、不用左侧竖线——那会让它读起来像引用别人的话。<code>em</code> 承担强调,永远是句子的<strong>后半句</strong>:前半句陈述处境,后半句是转折与判断。出处行可选;没有出处的是即时觉察,有出处的是成篇作品。</p>
+  </section>
+
+  <section>
+    <h2>Source Note · 原文展开</h2>
+    <details class="source-note">
+      <summary>展开一段觉察</summary>
+      <p class="source-note__body">终其一生,我们都在找回本就拥有的东西,那些不被俗尘遮蔽的纯真和与生俱来的智慧。即便能惊鸿一瞥,也是幸运的。</p>
+    </details>
+    <p class="note"><strong>规格.</strong> 用原生 <code>&lt;details&gt;</code>,不是自定义折叠。理由:无脚本可读、键盘可达、屏幕阅读器原生支持、不改变滚动位置。<code>+</code> 标记旋转 45° 成 <code>×</code>,240ms。触发区最小高度 44px。</p>
+  </section>
+
+  <section>
+    <h2>Poem Work · 原创诗词</h2>
+    <div class="poem-archive">
+      <article>
+        <div class="poem-work__title">《太极·之一》</div>
+        <p class="poem-work__body">动静有无处　吐纳归丹田
+扬手揽日月　舒臂抚山川
+云劝清风慢　松留白鹤闲
+道隐乾坤内　德存天地间</p>
+        <p class="poem-work__note">在动与静之间,寻找一种不需要高声证明的力量。</p>
+      </article>
+      <article>
+        <div class="poem-work__title">《卜算子·诗意》</div>
+        <p class="poem-work__body">花择夏日开　蝉从秋雨寂
+云过千山风盈怀　阴晴却何异
+
+对饮同清辉　沉醉共知己
+望朔盈亏月未老　圆缺皆诗意</p>
+        <p class="poem-work__note">真正的松弛,不是万事如意,而是阴晴圆缺皆可成为诗意。</p>
+      </article>
+    </div>
+    <p class="note"><strong>规格.</strong> 用 <code>white-space: pre-line</code> 保留原始换行,不用 <code>&lt;br&gt;</code>——诗的断行属于内容,不属于标记。句内停顿用全角空格,不用标点。行高 1.95,比正文更松,让每一行独立成立。</p>
+  </section>
+</body>
+</html>
