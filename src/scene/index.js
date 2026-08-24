@@ -1,6 +1,7 @@
 import { setupGsap, prefersReducedMotion } from "../motion/gsap-setup.js";
 import { createFieldScene } from "./field-scene.js";
 import { createMasterTimeline, renderStaticFrame } from "./master-timeline.js";
+import { createAnchors, ANCHOR_MIN_WIDTH } from "./anchors.js";
 
 // 常驻场景层入口。场景是"世界",不是逐屏装饰:它在 Hero 就存在,
 // 一直活到结尾,由主时间线连续 morph。
@@ -19,5 +20,41 @@ export function initScene() {
   }
 
   createMasterTimeline(scene);
+
+  // 锚定只在横向空间足够时启用。窄屏下固定定位的文字必然互相重叠,
+  // 可读性优先——那里保持原有的常规文档流。
+  let anchors = null;
+  // 只注册一次 hook,由闭包读取当前的 anchors——否则反复跨越断点
+  // resize 会不断往渲染钩子数组里追加,越滚越慢。
+  scene.addRenderHook((px, py) => {
+    if (anchors) anchors.apply(px, py);
+  });
+
+  const syncAnchorMode = () => {
+    const shouldAnchor = window.innerWidth >= ANCHOR_MIN_WIDTH;
+    if (shouldAnchor && !anchors) {
+      anchors = createAnchors(scene);
+      document.documentElement.classList.add("scene-anchored");
+      scene.render();
+    } else if (!shouldAnchor && anchors) {
+      document.documentElement.classList.remove("scene-anchored");
+      anchors.destroy();
+      anchors = null;
+      scene.render();
+    }
+  };
+
+  syncAnchorMode();
+
+  let resizeTimer = null;
+  window.addEventListener(
+    "resize",
+    () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(syncAnchorMode, 260);
+    },
+    { passive: true }
+  );
+
   return scene;
 }

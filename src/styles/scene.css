@@ -52,3 +52,136 @@
 .field-scene__nodes .core {
   fill: var(--signal);
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * 锚定模式
+ *
+ * 仅当 html.scene-anchored 时生效。该类由 JS 在"场景可用 + 非
+ * reduced-motion + 视口够宽"三者同时成立时才添加,因此窄屏、
+ * reduced-motion 与无 JS 环境一律保持原有的常规文档流布局。
+ *
+ * 单一写者:JS 只写 --anchor-x / --anchor-y,transform 始终是
+ * 样式表里的唯一声明,hover 缩放通过重写同一条声明来组合。
+ * ───────────────────────────────────────────────────────────── */
+
+.scene-anchored .is-anchored {
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  /* 必须显式复位:这些元素原本靠 :nth-child 的 bottom/right 在容器内定位,
+   * 若与这里的 top:0/left:0 同时生效,元素会被两端拉伸(表现为高度撑到
+   * 接近整屏),而不是移动到锚点。 */
+  right: auto;
+  bottom: auto;
+  opacity: 0;
+  transform: translate3d(var(--anchor-x, 0px), var(--anchor-y, 0px), 0);
+  transition: opacity 420ms var(--ease);
+  pointer-events: none;
+  will-change: transform;
+}
+
+.scene-anchored .is-anchored.is-live {
+  opacity: 1;
+}
+
+/* 文本块锚定在节点右侧,略微上移使首行与节点中心对齐。
+ * 统一改为 block 流:这些容器原先靠 grid 分行,而其子元素 b / span 都是
+ * inline,一旦脱离 grid 就会挤成一行,因此这里显式给子元素 block。 */
+.scene-anchored .map-point.is-anchored,
+.scene-anchored .belief-node.is-anchored,
+.scene-anchored .trajectory-step.is-anchored {
+  display: block;
+  width: max-content;
+  min-width: 0;
+  max-width: 24ch;
+  margin: -13px 0 0 26px;
+}
+
+.scene-anchored .map-point.is-anchored > b,
+.scene-anchored .map-point.is-anchored > span,
+.scene-anchored .belief-node.is-anchored > b,
+.scene-anchored .belief-node.is-anchored > span {
+  display: block;
+}
+
+.scene-anchored .map-point.is-anchored > span,
+.scene-anchored .belief-node.is-anchored > span {
+  margin-top: 5px;
+}
+
+/* 容器自带的小圆点与场景节点重复,锚定后交给场景层表达 */
+.scene-anchored .map-point.is-anchored::before,
+.scene-anchored .witness.is-anchored::before {
+  display: none;
+}
+
+/* 右半屏的文字翻到节点左侧,右对齐,否则会被视口右边缘裁切 */
+.scene-anchored .is-anchored.anchor-flip {
+  transform: translate3d(var(--anchor-x, 0px), var(--anchor-y, 0px), 0)
+    translateX(calc(-100% - 52px));
+  text-align: right;
+}
+
+/* 信念核心锚定在放大的中心节点上。用 transform 自身的百分比做居中
+ * (百分比相对元素自身),margin 的百分比相对父元素宽度,在这里是错的。 */
+.scene-anchored .belief-field__core.is-anchored {
+  width: max-content;
+  margin: 0;
+  transform: translate3d(var(--anchor-x, 0px), var(--anchor-y, 0px), 0) translate(-50%, -50%);
+}
+
+/* 容器装饰全部撤除:视觉主体已交给场景层,容器只剩下语义与占位。
+ * 注意不能用 display:none —— 那会连带隐藏已 fixed 的子元素。 */
+.scene-anchored .field-map::before,
+.scene-anchored .field-map::after,
+.scene-anchored .trajectory::before,
+.scene-anchored .belief-field__core::after {
+  display: none;
+}
+
+.scene-anchored .field-map,
+.scene-anchored .trajectory,
+.scene-anchored .belief-field {
+  min-height: 0;
+  border: 0;
+}
+
+.scene-anchored .belief-field__core {
+  position: fixed;
+  display: block;
+  width: max-content;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-align: center;
+}
+
+.scene-anchored .trajectory-step,
+.scene-anchored .belief-node {
+  display: block;
+  width: max-content;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.scene-anchored .trajectory-step {
+  grid-template-columns: none;
+  gap: 4px;
+}
+
+.scene-anchored .trajectory-step:nth-child(even) {
+  margin-left: 26px;
+}
+
+/* 两列栅格保持不变。
+ *
+ * 这里刻意不做单列化:列宽由 fr 决定、与内容高度无关,所以装饰容器塌陷后
+ * 那一列仍然留出空间,正好成为场景节点的活动区。反过来若把文字栏拉成整宽,
+ * 它就会盖到为 reverse 章节(视觉在左)设计的左侧节点上——标题与锚定文字
+ * 会直接重叠。左右交替的阅读节奏也依赖这两列。 */

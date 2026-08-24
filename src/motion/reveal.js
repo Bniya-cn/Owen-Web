@@ -85,13 +85,20 @@ function buildMotion(reduceMotion) {
 
   // 逐列表瀑布:与章节级揭示互不重叠(不是同一批节点),条目数自适应。
   document.querySelectorAll(WATERFALL_LIST_SELECTOR).forEach((list) => {
-    const items = list.querySelectorAll(WATERFALL_ITEM_SELECTOR);
-    if (!items.length) return;
+    if (!list.querySelector(WATERFALL_ITEM_SELECTOR)) return;
     ScrollTrigger.create({
       trigger: list,
       start: "top 85%",
       once: true,
       onEnter: () => {
+        // 在触发时刻(而非创建时刻)才取条目,并排除已被场景锚定的元素:
+        // 锚定层用 opacity 表达"本章是否活动",若这里再用 gsap.from 写一次
+        // 内联 opacity,就会出现两个写者争同一属性——内联样式会永久压过
+        // .is-live,锚定文字将再也不显示。属性归属必须唯一。
+        const items = [...list.querySelectorAll(WATERFALL_ITEM_SELECTOR)].filter(
+          (el) => !el.classList.contains("is-anchored")
+        );
+        if (!items.length) return;
         if (reduceMotion) {
           gsap.set(items, { clearProps: "opacity,transform" });
           return;

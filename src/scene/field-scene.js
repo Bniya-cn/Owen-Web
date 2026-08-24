@@ -87,6 +87,10 @@ export function createFieldScene() {
   const px = (n) => n.x * W + state.pointerX * (n.r / 0.02) * 6;
   const py = (n) => n.y * H + state.pointerY * (n.r / 0.02) * 6;
 
+  // 渲染钩子:锚定层挂在这里,与 SVG 写入同处一个 tick,
+  // 因此文字与节点不可能错开一帧。
+  const renderHooks = [];
+
   function render() {
     // 星群:亮度随 starDensity,位置带极轻微滚动视差
     for (let i = 0; i < STARS.length; i += 1) {
@@ -150,10 +154,18 @@ export function createFieldScene() {
     }
     mountainEl.setAttribute("d", md);
     mountainEl.setAttribute("opacity", m * 0.55);
+
+    for (let i = 0; i < renderHooks.length; i += 1) renderHooks[i](px, py);
   }
 
   resize();
   render();
 
-  return { svg, state, render, resize };
+  return {
+    svg,
+    state,
+    render,
+    resize,
+    addRenderHook: (hook) => renderHooks.push(hook),
+  };
 }
