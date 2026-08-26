@@ -85,6 +85,22 @@
   opacity: 1;
 }
 
+/* 锚定文字活跃态可读性增强：13px/500/完全不透明，
+ * 避免细字重小字在深底 + 轨迹线背景下观感偏淡。 */
+.scene-anchored .map-point.is-anchored.is-live b,
+.scene-anchored .belief-node.is-anchored.is-live b,
+.scene-anchored .trajectory-step.is-anchored.is-live .trajectory-step__title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.scene-anchored .map-point.is-anchored.is-live span,
+.scene-anchored .belief-node.is-anchored.is-live span,
+.scene-anchored .trajectory-step.is-anchored.is-live .trajectory-step__body {
+  font-weight: 500;
+  opacity: 1;
+}
+
 /* 文本块锚定在节点右侧,略微上移使首行与节点中心对齐。
  * 统一改为 block 流:这些容器原先靠 grid 分行,而其子元素 b / span 都是
  * inline,一旦脱离 grid 就会挤成一行,因此这里显式给子元素 block。 */

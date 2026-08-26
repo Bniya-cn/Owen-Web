@@ -9,6 +9,15 @@ letter-spacing: 0.16em;
 text-transform: uppercase;
 }
 
+/* 可见穿字治理（轨迹几何不变）：同底晕影在字形周围铺一层页面底色，
+ * 轨迹线进入文字安全区时被底色遮住——几何上仍相交，像素上不可见。
+ * 6px 为基线，真机按轨迹亮度与图像背景校准。 */
+.field-title,
+.field-lead,
+.thought-thread {
+text-shadow: 0 0 6px var(--bg), 0 0 14px var(--bg);
+}
+
 .field-kicker::before {
 width: 28px;
 height: 1px;
@@ -32,6 +41,7 @@ max-width: 34ch;
 margin: 0;
 color: var(--muted);
 font-size: clamp(18px, 2vw, 27px);
+font-weight: 500;
 line-height: 1.5;
 }
 
@@ -40,6 +50,7 @@ max-width: 58ch;
 margin: 26px 0 0;
 color: var(--muted);
 font-size: 15px;
+font-weight: 500;
 line-height: 1.9;
 }
 
@@ -52,6 +63,7 @@ font-weight: 650;
 display: inline-block;
 margin-top: 28px;
 color: var(--warm);
-font-size: 11px;
+font-size: 12px;
+font-weight: 500;
 letter-spacing: 0.16em;
 }
