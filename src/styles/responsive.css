@@ -15,6 +15,11 @@ padding: max(88px, calc(80px + env(safe-area-inset-top))) 22px max(84px, calc(72
 overflow: hidden;
 }
 
+/* 窄屏下章节氛围图像进一步降透明度，避免压过小屏文字可读性。 */
+.chapter-plate {
+opacity: 0.18;
+}
+
 .field-section::before,
 .field-section:nth-child(odd)::before,
 .field-section:nth-child(even)::before {
