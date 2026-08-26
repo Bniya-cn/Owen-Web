@@ -140,7 +140,9 @@ export function createFieldScene() {
       }
       trajectoryEl.setAttribute("d", d);
     }
-    trajectoryEl.setAttribute("opacity", state.trajectory * 0.5);
+    // 可见穿字治理：轨迹几何不变，透明度上限 0.5 → 0.38，
+    // 配合正文同底晕影（typography.css）让线在字形处视觉上退出。
+    trajectoryEl.setAttribute("opacity", state.trajectory * 0.38);
 
     // 山脊:平线 ↔ 山形逐点补间
     const m = state.mountain;
