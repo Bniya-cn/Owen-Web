@@ -10,8 +10,12 @@ transform: none;
 /* List-type containers are excluded here: they own their entrance via the separate
 * per-list waterfall (targeting their children individually, see inline script),
 * so this section-level fade must not also apply to the container itself — doing
-* both would compound into a double stagger on the same visual region (MAJOR #6). */
-.motion-ready .section-reveal > *:not(.field-markers):not(.field-map):not(.trajectory):not(.belief-field):not(.protocol-list):not(.witness-list):not(.evidence-list):not(.quiet-lines) {
+* both would compound into a double stagger on the same visual region (MAJOR #6).
+* .story-copy is excluded because its title chain (kicker/title/lead/stamp/poem)
+* is choreographed by the dedicated title-chain batch in reveal.js — single writer
+* per property. Likewise the four title-chain classes are excluded wherever they
+* appear as direct children of .section-reveal (e.g. #invite). */
+.motion-ready .section-reveal > *:not(.field-markers):not(.field-map):not(.trajectory):not(.belief-field):not(.protocol-list):not(.witness-list):not(.evidence-list):not(.quiet-lines):not(.story-copy):not(.field-kicker):not(.field-title):not(.field-lead):not(.thought-thread) {
 opacity: 0;
 transform: translateY(18px);
 }
@@ -20,6 +24,18 @@ transform: translateY(18px);
 .field-section.is-visible .section-reveal .protocol-item:focus-visible,
 .field-section.is-visible .section-reveal .protocol-item.is-active {
 transform: translateX(14px);
+}
+
+/* 章节标题链与诗句的入场预置态。默认（无 motion-ready）全部可见；
+* 仅当 reveal.js 初始化事务全部成功后才提交 motion-ready，此时才进入
+* 隐藏态等待 ScrollTrigger 驱动入场（见 reveal.js 的 initMotion 合同）。 */
+.motion-ready .field-kicker,
+.motion-ready .field-title,
+.motion-ready .story-title,
+.motion-ready .field-lead,
+.motion-ready .thought-thread {
+opacity: 0;
+transform: translateY(18px);
 }
 
 .floating-status {
@@ -31,7 +47,8 @@ display: flex;
 align-items: center;
 gap: 10px;
 color: var(--quiet);
-font-size: 10px;
+font-size: 11px;
+font-weight: 500;
 letter-spacing: 0.12em;
 text-transform: uppercase;
 }

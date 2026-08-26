@@ -10,8 +10,13 @@ initWorkProtocol();
 // 动效层:渐进增强。动态导入使其独立成 chunk(gsap 一并进入该 chunk),
 // 加载或初始化失败时 html 拿不到 .motion-ready,内容停在完全可见的静态状态,
 // 且上面的交互层不受影响——这比原先"vendor 全局脚本失败则整层失效"更稳。
+// initProgress(进度条与 35% 统计)是阅读位置功能,与入场动效分离提交,
+// 不受 motion-ready 事务成败影响。
 import("./motion/reveal.js")
-  .then(({ initMotion }) => initMotion())
+  .then(({ initMotion, initProgress }) => {
+    initProgress();
+    initMotion();
+  })
   .catch((err) => console.warn("[v8.1] motion layer unavailable, page remains static:", err));
 
 // 常驻场景层:与揭示层各自独立成 chunk、各自 catch。
