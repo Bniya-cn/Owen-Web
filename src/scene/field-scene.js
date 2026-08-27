@@ -69,10 +69,20 @@ export function createFieldScene() {
     pointerX: 0,
     pointerY: 0,
     parallax: 0,
-    // 交互覆盖层:星群不参与主时间线 morph(只变亮度),因此这里是一条独立通道。
-    // 唯一写者是信念面板模块;render 只做基础位与覆盖位的加权混合。
-    // overrides 为 Map: starIndex -> { x, y, o }(像素坐标)。
-    interaction: { weight: 0, starOverrides: new Map() },
+    // 章节交互覆盖（Temporary Chapter Morph）:展开阅读框时,原主节点与原连线
+    // 本身重组成框——不新建任何框角/框边元素。唯一写者是信念面板模块。
+    // nodeOverrides: nodeIndex -> { dx, dy, r, o, haloScale, haloOpacity }
+    //   (dx/dy 为像素位移目标,与 weight 相乘后叠加到基础位上);
+    // linkOverrides: linkIndex -> { opacity, drawProgress, growFrom }
+    //   (逐边生长:端点向目标端按 drawProgress 插值);
+    // 未覆盖的连线按 weight 退暗。渲染管线:
+    //   base(master timeline) → override → weight 混合 → resolved。
+    interaction: {
+      weight: 0,
+      nodeOverrides: new Map(),
+      linkOverrides: new Map(),
+      ambientStarWeight: 0,
+    },
   };
 
   let W = 0;
@@ -91,60 +101,101 @@ export function createFieldScene() {
   const px = (n) => n.x * W + state.pointerX * (n.r / 0.02) * 6;
   const py = (n) => n.y * H + state.pointerY * (n.r / 0.02) * 6;
 
+  // resolved 坐标缓冲:节点混合结果写在这里,连线与渲染钩子共用同一份数据,
+  // 因此框线端点与节点中心不可能错开一帧。
+  const resolvedX = new Float64Array(NODE_COUNT);
+  const resolvedY = new Float64Array(NODE_COUNT);
+  const nodeBaseX = (i) => {
+    const n = state.nodes[i];
+    return n.x * W + state.pointerX * (n.r / 0.02) * 6;
+  };
+  const nodeBaseY = (i) => {
+    const n = state.nodes[i];
+    return n.y * H + state.pointerY * (n.r / 0.02) * 6;
+  };
+
   // 渲染钩子:锚定层挂在这里,与 SVG 写入同处一个 tick,
   // 因此文字与节点不可能错开一帧。
   const renderHooks = [];
 
   function render() {
-    // 星群:亮度随 starDensity,位置带极轻微滚动视差;
-    // 交互覆盖生效时,被选中的星向覆盖目标位置插值(星群成框)。
     const iw = state.interaction.weight;
-    const overrides = iw > 0.001 ? state.interaction.starOverrides : null;
+    const nodeOv = iw > 0.001 ? state.interaction.nodeOverrides : null;
+    const linkOv = iw > 0.001 ? state.interaction.linkOverrides : null;
+
+    // 星群:纯氛围层,不承担任何框结构。框形成时整体轻微提亮,
+    // 与 residue 星尘形成呼应。
+    const amb = state.interaction.ambientStarWeight;
     for (let i = 0; i < STARS.length; i += 1) {
       const s = STARS[i];
       const c = starEls[i];
-      let x = s.x * W + state.pointerX * s.depth * 10;
-      let y = s.y * H - state.parallax * s.depth * 40;
-      let o = (0.25 + s.phase * 0.75) * state.starDensity;
-      const ov = overrides ? overrides.get(i) : null;
-      if (ov) {
-        x += (ov.x - x) * iw;
-        y += (ov.y - y) * iw;
-        o += (ov.o - o) * iw;
-      }
+      const x = s.x * W + state.pointerX * s.depth * 10;
+      const y = s.y * H - state.parallax * s.depth * 40;
+      const o = (0.25 + s.phase * 0.75) * state.starDensity * (1 + amb * 0.3);
       c.setAttribute("cx", x);
       c.setAttribute("cy", y);
       c.setAttribute("r", s.r * S);
       c.setAttribute("opacity", o);
     }
 
-    // 主节点
+    // 主节点:resolved = mix(base, override, weight)。未覆盖的节点不受影响。
     for (let i = 0; i < NODE_COUNT; i += 1) {
       const n = state.nodes[i];
-      const x = px(n);
-      const y = py(n);
-      const r = n.r * S;
+      const bx = nodeBaseX(i);
+      const by = nodeBaseY(i);
+      const ov = nodeOv ? nodeOv.get(i) : null;
+      let x = bx;
+      let y = by;
+      let r = n.r * S;
+      let o = n.o;
+      let haloR = r;
+      if (ov) {
+        x = bx + ov.dx * iw;
+        y = by + ov.dy * iw;
+        r *= ov.r + (1 - ov.r) * (1 - iw);
+        o += (ov.o - o) * iw;
+        haloR = r * (1 + (ov.haloScale - 1) * iw);
+      }
+      resolvedX[i] = x;
+      resolvedY[i] = y;
       const { halo, core, g } = nodeEls[i];
-      g.setAttribute("opacity", n.o);
+      g.setAttribute("opacity", o);
       core.setAttribute("cx", x);
       core.setAttribute("cy", y);
       core.setAttribute("r", r * 0.32);
       halo.setAttribute("cx", x);
       halo.setAttribute("cy", y);
-      halo.setAttribute("r", r);
+      halo.setAttribute("r", haloR);
     }
 
-    // 连线:强度 × 两端可见度
+    // 连线:基础强度 × 两端可见度。被覆盖的连线向框边状态混合并支持逐边生长;
+    // 其余连线随 weight 退暗(不删除、不隐藏)。
     for (let k = 0; k < LINKS.length; k += 1) {
       const [i, j] = LINKS[k];
-      const a = state.nodes[i];
-      const b = state.nodes[j];
       const line = linkEls[k];
-      line.setAttribute("x1", px(a));
-      line.setAttribute("y1", py(a));
-      line.setAttribute("x2", px(b));
-      line.setAttribute("y2", py(b));
-      line.setAttribute("opacity", state.linkStrength * a.o * b.o * 0.42);
+      const ov = linkOv ? linkOv.get(k) : null;
+      let x1 = resolvedX[i];
+      let y1 = resolvedY[i];
+      let x2 = resolvedX[j];
+      let y2 = resolvedY[j];
+      let op = state.linkStrength * state.nodes[i].o * state.nodes[j].o * 0.42;
+      if (ov) {
+        const from = ov.growFrom === j ? j : i;
+        const to = from === i ? j : i;
+        const p = ov.drawProgress ?? 1;
+        x1 = resolvedX[from];
+        y1 = resolvedY[from];
+        x2 = resolvedX[from] + (resolvedX[to] - resolvedX[from]) * p;
+        y2 = resolvedY[from] + (resolvedY[to] - resolvedY[from]) * p;
+        op += (ov.opacity - op) * iw;
+      } else {
+        op *= 1 - iw * 0.88;
+      }
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y2);
+      line.setAttribute("opacity", op);
     }
 
     // 轨迹:按节点顺序穿过所有可见节点的平滑折线
@@ -179,11 +230,22 @@ export function createFieldScene() {
   resize();
   render();
 
+  // 按节点对找连线索引(无序对)。供章节交互覆盖选取 perimeter link。
+  function getLinkIndex(i, j) {
+    return LINKS.findIndex(([a, b]) => (a === i && b === j) || (a === j && b === i));
+  }
+
   return {
     svg,
     state,
     render,
     resize,
     addRenderHook: (hook) => renderHooks.push(hook),
+    getLinkIndex,
+    getLink: (i, j) => linkEls[getLinkIndex(i, j)] ?? null,
+    nodeBaseX,
+    nodeBaseY,
+    nodeEls,
+    linkEls,
   };
 }

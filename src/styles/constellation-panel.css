@@ -1,10 +1,10 @@
 /*
- * 星群成框 / 文本星尘 —— 觉察/信念展开面板与残响星尘。
+ * 就地重组成框 / 文本星尘 —— 觉察/信念展开面板与残响星尘。
  *
  * 面板是章节的本地层(随章节滚动,不 fixed);person 与 beliefs 各一个实例,
  * 选择器带 id 同特异性,覆盖 components.css 的 ".field-section > *"。
- * 框线由 SVG 线条构成,"由节点临时组织出的阅读区域"而非设计系统卡片;
- * 玻璃层深墨绿、雾面、轻微毛玻璃,不是白玻璃、不是 HUD。
+ * 面板只承担 glass 与文本内容:框角与框边由场景原节点与原连线本身承担,
+ * 这里不保留任何框体表现层。玻璃层深墨绿、雾面、轻微毛玻璃。
  */
 
 /* ---------- 面板容器 ---------- */
@@ -40,32 +40,7 @@
   overflow: visible;
 }
 
-/* ---------- 框架:角点 + 边线 ---------- */
-
-.belief-panel__frame {
-  position: absolute;
-  inset: 0;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.belief-panel__edge {
-  fill: none;
-  stroke: rgb(199 244 100 / 0.34);
-  stroke-width: 1;
-}
-
-.belief-panel__corner {
-  fill: var(--signal);
-  filter: drop-shadow(0 0 6px rgb(199 244 100 / 0.55));
-}
-
-.belief-panel__corner.is-source {
-  fill: var(--signal-border);
-  filter: drop-shadow(0 0 10px rgb(199 244 100 / 0.8));
-}
-
-/* ---------- 玻璃承载层:略内缩于框线 ---------- */
+/* ---------- 玻璃承载层:内缩于四个真实框角节点(12px,建议区间 10–16) ---------- */
 
 .belief-panel__glass {
   position: absolute;
@@ -177,6 +152,21 @@
 html:not(.scene-anchored) .belief-panel-live .belief-node,
 html:not(.scene-anchored) .belief-panel-live .field-map .map-point {
   transform: translate3d(var(--panel-dx, 0px), var(--panel-dy, 0px), 0);
+}
+
+/* ---------- 展开期间:角注记退暗但不消失 ----------
+ * 注记跟随各自节点成为框角(位移由 --panel-dx/dy 承担),透明度降到 0.6,
+ * 让用户连续认出"原本的节点直接成为了阅读框四角"。
+ * 特异性高于 scene.css 的 .is-anchored.is-live 规则。 */
+
+.scene-anchored .belief-panel-live .is-anchored.is-live.is-panel-corner {
+  opacity: 0.6;
+  transition: opacity 0.5s var(--ease);
+}
+
+html:not(.scene-anchored) .belief-panel-live .is-panel-corner {
+  opacity: 0.6;
+  transition: opacity 0.5s var(--ease);
 }
 
 /* ---------- 残响星尘层:章节本地,随章节滚走 ---------- */

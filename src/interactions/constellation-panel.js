@@ -1,29 +1,25 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { STARS } from "../scene/layouts.js";
-import { getNodeViewport, ANCHOR_MIN_WIDTH } from "../scene/anchors.js";
 
 /*
- * 星群成框 / 文本星尘（ConstellationPanel）—— Controller + 双实例。
+ * 就地重组成框 / 文本星尘（ConstellationPanel）—— Controller + 双实例。
  *
- * 隐喻:思想被阅读时形成语言;离开语言后重新回到星群。
+ * 隐喻:思想被阅读时形成语言;离开语言后重新回到网络。
  * 两个实例共用一套仪式:person「展开一段觉察」、beliefs「展开另一条信念」。
  *
- * 几何模型（单一写者）:
- *   resolved corner = baseCorner + panelDelta
- *   - baseCorner:锚定模式取场景主节点视口坐标（anchors.getNodeViewport）,
- *     窄屏未锚定才取 DOM 静态布局的 rect;
- *   - panelDelta:每角 {dx, dy} 的 JS 中间对象,由 GSAP 补间,
- *     onUpdate 统一写四处消费者——
- *       1. 角注记的 --panel-dx/--panel-dy（锚定规则在样式表里与 --anchor 相加）
- *       2. interaction 覆盖通道（星群飞向同一 resolved 位置）
- *       3. frame SVG 端点（章节本地）
- *       4. 面板容器自身的 left/top/宽高
+ * Temporary Chapter Morph(单一写者):
+ *   resolved corner = baseCorner + delta × interaction.weight
+ *   - 阅读框四角就是 .field-scene 里本来的主节点,四边就是 .field-scene__links
+ *     里本来的连线。全程不新建任何承担框角/框边表现的 circle/path/line。
+ *   - weight 是唯一被补间的运动量:节点位移、连线强化/退暗、角注记位移、
+ *     Glass 位置全部由同一份混合结果导出,不可能互相错开一帧。
+ *   - linkOverrides 的 drawProgress 补间让原 <line> 逐边生长为框边;
+ *     其余原连线随 weight 退暗(不删除、不隐藏)。
+ *   - Glass / 正文 / 星尘仍是章节本地 DOM,几何实时来自四个 resolved 角。
  *
  * 架构约束(与 DESIGN.md 的单一写者原则一致):
- * - 主节点与滚动场景由 master-timeline 独占;本模块只使用独立的
- *   "星群交互覆盖"通道(星群本身不参与滚动 morph,无抢写风险)。
- * - 框线 / 玻璃 / 文本 / 星尘全部是章节的本地层,随章节一起滚走。
+ * - 主节点与滚动场景由 master-timeline 独占;面板模块只写 interaction 覆盖。
+ * - 关闭时清掉覆盖并把 weight 归零,场景自然回到当前滚动位置的网络态。
  * - <details> 原生语义保留:脚本不可用时展开仍然工作(渐进增强)。
  *
  * 状态机:
@@ -31,12 +27,15 @@ import { getNodeViewport, ANCHOR_MIN_WIDTH } from "../scene/anchors.js";
  *   FORMING / READING / REASSEMBLING 离场或滚动超限 → FAST_COLLAPSING → RESIDUE
  */
 
-// 双实例配置。标题均为占位文案,可一句话替换（见自查报告）。
+// 双实例配置。nodeOrder 按矩形序给出(左上、右上、右下、左下)。
+// person 的 DOM/节点顺序并不等于矩形顺序,已按 CHAPTER_LAYOUTS.person
+// 实查确认:node2 偏左下、node3 偏右下,因此矩形序为 [0, 1, 3, 2]。
 const INSTANCES = [
   {
     id: "awareness",
     sectionId: "person",
     cornerSelector: ".map-point",
+    nodeOrder: [0, 1, 3, 2],
     kicker: "Awareness / Lived Truth",
     titleLines: ["觉察，", "是找回，不是抵达。"],
     keywords: ["找回", "纯真", "智慧", "惊鸿一瞥"],
@@ -45,11 +44,21 @@ const INSTANCES = [
     id: "goodwill",
     sectionId: "beliefs",
     cornerSelector: ".belief-node",
+    nodeOrder: [0, 1, 2, 3],
     kicker: "Belief / Lived Truth",
     titleLines: ["善意，", "不是一种履历。"],
     keywords: ["善意", "关键时刻", "选择", "资历", "经验", "职位", "收入"],
   },
 ];
+
+// READING 形态常量:框角节点略亮、halo 半径 1 → 1.12(不过曝);
+// 框边目标透明度 0.55。Glass 内缩 12px 由 .belief-panel__glass 的 inset 承担。
+const FRAME = {
+  nodeR: 1.06,
+  nodeO: 1,
+  haloScale: 1.12,
+  edgeOpacity: 0.55,
+};
 
 // 展开态:允许被 Esc / 滚动守卫 / 离场触发收起的状态。
 const OPEN_STATES = new Set(["FORMING", "READING", "REASSEMBLING"]);
@@ -111,16 +120,10 @@ export function createConstellationPanel(scene) {
   };
   window.addEventListener("scroll", onScroll, { passive: true });
 
-  // resize:跨越锚定断点 → 先立即就地收拢（无动画）,随后 index.js 既有的
-  // 防抖才会切换锚定模式;同宽度段内的普通 resize 防抖重算几何。
-  let anchoredMode = window.innerWidth >= ANCHOR_MIN_WIDTH;
+  // resize:debounce 重算几何。节点位置由场景独占,面板每帧从 resolved 角取数,
+  // 跨越断点或同宽度段 resize 都只需重算位移目标,不存在两套布局的同步问题。
   let resizeTimer = null;
   const onResize = () => {
-    const nowAnchored = window.innerWidth >= ANCHOR_MIN_WIDTH;
-    if (nowAnchored !== anchoredMode) {
-      anchoredMode = nowAnchored;
-      if (controller.active) controller.active.collapseImmediate();
-    }
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => controller.active?.relayout(), 250);
   };
@@ -138,15 +141,17 @@ export function createConstellationPanel(scene) {
 
     let panelState = "IDLE";
     let activeTl = null; // 当前可取消的时间线(单一写者)
-    let cornerStars = []; // 被征用的星索引
     let particles = []; // residue 粒子记录
     let residueShown = false;
     let openScrollY = 0;
     let contentHeight = 0;
 
-    // 四角几何:基准位(视口坐标)+ 每角位移。任一帧只有 syncFrame 解析它。
-    const deltas = [0, 1, 2, 3].map(() => ({ dx: 0, dy: 0 }));
+    // 四角几何:基准位(视口坐标)+ 每角静态位移目标。实际运动只由
+    // interaction.weight 补间驱动:resolved = base + delta × weight。
     let bases = [];
+    const deltas = [0, 1, 2, 3].map(() => ({ dx: 0, dy: 0 }));
+    // 当前四条框边的 link override 对象引用(drawProgress 直接补间它们)。
+    let frameLinkOv = [];
 
     const killActive = () => {
       if (activeTl) {
@@ -161,16 +166,6 @@ export function createConstellationPanel(scene) {
     panel.id = `belief-panel-${cfg.id}`;
     panel.setAttribute("aria-hidden", "true");
     panel.innerHTML = `
-      <svg class="belief-panel__frame" aria-hidden="true" preserveAspectRatio="none">
-        <path class="belief-panel__edge" />
-        <path class="belief-panel__edge" />
-        <path class="belief-panel__edge" />
-        <path class="belief-panel__edge" />
-        <circle class="belief-panel__corner is-source" r="3.4" />
-        <circle class="belief-panel__corner" r="3" />
-        <circle class="belief-panel__corner" r="3" />
-        <circle class="belief-panel__corner" r="3" />
-      </svg>
       <div class="belief-panel__glass"></div>
       <div class="belief-panel__content">
         <span class="belief-panel__kicker">${cfg.kicker}</span>
@@ -234,10 +229,7 @@ export function createConstellationPanel(scene) {
     summary.setAttribute("aria-expanded", "false");
     summary.setAttribute("aria-controls", panel.id);
 
-    const frame = panel.querySelector(".belief-panel__frame");
     const glass = panel.querySelector(".belief-panel__glass");
-    const edges = [...panel.querySelectorAll(".belief-panel__edge")];
-    const corners = [...panel.querySelectorAll(".belief-panel__corner")];
     const titleLines = [...panel.querySelectorAll(".belief-panel__title .belief-panel__line")];
     const bodyLines = [...panel.querySelectorAll(".belief-panel__body .belief-panel__line")];
     const tokens = [...panel.querySelectorAll(".belief-token")];
@@ -246,28 +238,18 @@ export function createConstellationPanel(scene) {
     const allText = [kicker, ...titleLines, ...bodyLines];
 
     // ---------- 几何:基准位、位移预算与唯一解析函数 ----------
-    const isAnchored = () => document.documentElement.classList.contains("scene-anchored");
-
-    // 四角基准:锚定模式用场景主节点坐标（不用角注记的 rect——它们带
-    // margin 与 anchor-flip 偏移,是文字标签不是几何点）;窄屏未锚定才用
-    // DOM 静态布局的 rect 中心（减去当前位移,避免反馈循环）。
+    // 四角基准 = 场景主节点的当前位置。与 render 同一数据源(nodeBaseX/Y),
+    // 因此读到的就是节点此刻的位置;不再用角注记的 rect(那是文字标签)。
     function readBases() {
-      if (isAnchored()) {
-        const pts = cornerEls.map((_, i) => getNodeViewport(i));
-        if (pts.every((pt) => pt)) return pts;
-      }
-      return cornerEls.map((el, i) => {
-        const r = el.getBoundingClientRect();
-        return {
-          x: r.left + r.width / 2 - deltas[i].dx,
-          y: r.top + r.height / 2 - deltas[i].dy,
-        };
-      });
+      return cfg.nodeOrder.map((nodeIndex) => ({
+        x: scene.nodeBaseX(nodeIndex),
+        y: scene.nodeBaseY(nodeIndex),
+      }));
     }
 
-    // 第 3 点:位移预算优先。每个角沿质心方向外推一个预算长度——
+    // 位移预算优先。每个角沿质心方向外推一个预算长度——
     // 质心保持不变,框在预算内尽量撑开;预算不够就窄框多换行,
-    // 不为卡片宽度拖走节点。
+    // 不为卡片宽度拖走节点(单节点位移 <= min(96px, 7vw))。
     function cornerBudget() {
       return Math.min(96, window.innerWidth * 0.07);
     }
@@ -284,23 +266,27 @@ export function createConstellationPanel(scene) {
       });
     }
 
-    // 唯一几何解析:四处消费者全部从这一处取数。
+    // 唯一几何解析:resolved corner = base + delta × weight,与 scene.render 内
+    // 的节点混合同式同源,因此 Glass 与四角不可能各自跑一套布局。
     function syncFrame() {
       if (!bases.length) return;
-      const resolved = bases.map((b, i) => ({ x: b.x + deltas[i].dx, y: b.y + deltas[i].dy }));
+      const iw = scene.state.interaction.weight;
+      const resolved = cfg.nodeOrder.map((nodeIndex, k) => ({
+        x: scene.nodeBaseX(nodeIndex) + deltas[k].dx * iw,
+        y: scene.nodeBaseY(nodeIndex) + deltas[k].dy * iw,
+      }));
 
-      // 1) 角注记跟随四角（--panel-dx/dy;锚定规则里与 --anchor 相加）。
-      cornerEls.forEach((el, i) => {
-        el.style.setProperty("--panel-dx", `${deltas[i].dx.toFixed(1)}px`);
-        el.style.setProperty("--panel-dy", `${deltas[i].dy.toFixed(1)}px`);
+      // 1) 角注记跟随各自节点:注记按 DOM 序对应节点 0~3,位移乘 weight,
+      //    与节点每帧同量移动。
+      cornerEls.forEach((el, nodeIndex) => {
+        const k = cfg.nodeOrder.indexOf(nodeIndex);
+        if (k === -1) return;
+        el.style.setProperty("--panel-dx", `${(deltas[k].dx * iw).toFixed(1)}px`);
+        el.style.setProperty("--panel-dy", `${(deltas[k].dy * iw).toFixed(1)}px`);
       });
 
-      // 2) interaction 覆盖通道:星群飞向同一 resolved 位置。
-      const ov = scene.state.interaction.starOverrides;
-      ov.clear();
-      cornerStars.forEach((idx, i) => ov.set(idx, { x: resolved[i].x, y: resolved[i].y, o: 0.95 }));
-
-      // 3) + 4) 面板本地几何与 frame 端点。
+      // 2) Glass / 面板几何 = 四个 resolved 角的包络(内缩由 .belief-panel__glass
+      //    的 inset 12px 承担)。节点在哪里,玻璃就在哪里。
       const secRect = section.getBoundingClientRect();
       const local = resolved.map((pt) => ({ x: pt.x - secRect.left, y: pt.y - secRect.top }));
       const minX = Math.min(...local.map((p) => p.x));
@@ -314,23 +300,44 @@ export function createConstellationPanel(scene) {
       panel.style.top = `${minY}px`;
       panel.style.width = `${width}px`;
       panel.style.height = `${height}px`;
-      frame.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      const pts = local.map((p) => [p.x - minX, p.y - minY]);
-      corners.forEach((c, i) => {
-        c.setAttribute("cx", pts[i][0]);
-        c.setAttribute("cy", pts[i][1]);
+    }
+
+    // ---------- interaction 覆盖:唯一写入者 ----------
+    // nodeOverrides:四个框角节点就地位移成框(略亮、halo 微增);
+    // linkOverrides:四条 perimeter 边强化并逐边生长,其余连线由 render 退暗。
+    // drawProgress 初始为 0:线段退化为起点端单点,补间后向另一端生长。
+    function writeOverrides() {
+      const it = scene.state.interaction;
+      it.nodeOverrides.clear();
+      it.linkOverrides.clear();
+      cfg.nodeOrder.forEach((nodeIndex, k) => {
+        it.nodeOverrides.set(nodeIndex, {
+          dx: deltas[k].dx,
+          dy: deltas[k].dy,
+          r: FRAME.nodeR,
+          o: FRAME.nodeO,
+          haloScale: FRAME.haloScale,
+          haloOpacity: 1,
+        });
       });
-      for (let i = 0; i < 4; i += 1) {
-        const [x1, y1] = pts[i];
-        const [x2, y2] = pts[(i + 1) % 4];
-        edges[i].setAttribute("d", `M${x1} ${y1} L${x2} ${y2}`);
+      frameLinkOv = [];
+      for (let k = 0; k < 4; k += 1) {
+        const a = cfg.nodeOrder[k];
+        const b = cfg.nodeOrder[(k + 1) % 4];
+        const linkIndex = scene.getLinkIndex(a, b);
+        const ov = { opacity: FRAME.edgeOpacity, drawProgress: 0, growFrom: a };
+        frameLinkOv.push(ov);
+        it.linkOverrides.set(linkIndex, ov);
       }
     }
 
-    // delta 补间的统一 onUpdate:写变量、同步几何、重渲染场景。
-    function applyDeltaFrame() {
-      syncFrame();
-      scene.render();
+    function clearOverrides() {
+      const it = scene.state.interaction;
+      it.nodeOverrides.clear();
+      it.linkOverrides.clear();
+      it.weight = 0;
+      it.ambientStarWeight = 0;
+      frameLinkOv = [];
     }
 
     function clearCornerVars() {
@@ -355,30 +362,6 @@ export function createConstellationPanel(scene) {
       const h = panel.offsetHeight;
       panel.classList.remove("is-measuring");
       return h;
-    }
-
-    // 边线预置:满长 dash + 满偏移 = 不可见,稍后逐边画出生长感。
-    function primeEdges() {
-      edges.forEach((edge) => {
-        const len = edge.getTotalLength();
-        edge.style.strokeDasharray = `${len}`;
-        edge.style.strokeDashoffset = `${len}`;
-      });
-    }
-
-    function fullEdges() {
-      edges.forEach((edge) => {
-        edge.style.strokeDasharray = "none";
-        edge.style.strokeDashoffset = "0";
-      });
-    }
-
-    // seeded:同一条信念永远征用同一批星
-    function pickCornerStars() {
-      const rand = seededRandom(hashString(`${cfg.id}:stars`));
-      const picked = new Set();
-      while (picked.size < 4) picked.add(Math.floor(rand() * STARS.length));
-      return [...picked];
     }
 
     // ---------- 残响星尘:seeded、章节本地、可重组 ----------
@@ -432,26 +415,27 @@ export function createConstellationPanel(scene) {
       panel.classList.remove("is-escaping");
     }
 
-    // 关闭收尾:删变量、退类、权重归零、交还控制权。
+    // 关闭收尾:删变量、退类、清覆盖、权重归零、交还控制权。
+    // 覆盖清空后 master timeline 重新成为唯一视觉,场景自然回到当前滚动位。
     function finishClose() {
       resetDeltas();
       clearCornerVars();
+      cornerEls.forEach((el) => el.classList.remove("is-panel-corner"));
       panel.classList.remove("is-open", "is-escaping");
       setExpanded(false);
       section.classList.remove("belief-panel-live");
-      scene.state.interaction.weight = 0;
-      scene.state.interaction.starOverrides.clear();
+      clearOverrides();
       scene.render();
       if (controller.active === instance) controller.active = null;
     }
 
     // ---------- 时间线工厂 ----------
-    function buildFormTimeline(targetDeltas) {
+    // 运动口径:delta 已在 open() 静态就位,时间线只补间 interaction.weight
+    // (节点 morph、非框连线退暗、角注记跟随)与四条边的 drawProgress(逐边生长)。
+    function buildFormTimeline() {
       killActive();
       resetForForm();
       panelState = "FORMING";
-      primeEdges();
-      gsap.set(corners, { opacity: 0 });
       gsap.set(glass, { opacity: 0, scale: 0.985 });
       gsap.set(allText, { opacity: 0, y: 14 });
 
@@ -469,29 +453,28 @@ export function createConstellationPanel(scene) {
         { scale: 1.06, duration: 0.14, yoyo: true, repeat: 1, ease: "power2.out" },
         0
       )
-        // 四角 delta 生长:节点、框线、面板几何由同一对象驱动
+        // weight 0→1:四个主节点 morph 向框角,其余连线退暗,注记同步跟随
         .to(
-          deltas,
+          scene.state.interaction,
           {
-            dx: (i) => targetDeltas[i].dx,
-            dy: (i) => targetDeltas[i].dy,
+            weight: 1,
+            ambientStarWeight: 1,
             duration: 0.62,
             ease: "power3.inOut",
-            onUpdate: applyDeltaFrame,
+            onUpdate: () => scene.render(),
           },
           0.08
         )
-        // 星群同步飞向四角(覆盖权重 0→1)
+        // 四条框边从原网络连线里逐边长出(drawProgress 0→1)
         .to(
-          scene.state.interaction,
-          { weight: 1, duration: 0.62, ease: "power3.inOut", onUpdate: () => scene.render() },
-          0.08
-        )
-        .to(corners, { opacity: 1, duration: 0.3, stagger: 0.05, ease: "power2.out" }, 0.42)
-        // 框线逐边生長并闭合
-        .to(
-          edges,
-          { opacity: 0.9, strokeDashoffset: 0, duration: 0.42, stagger: 0.09, ease: "power2.inOut" },
+          frameLinkOv,
+          {
+            drawProgress: 1,
+            duration: 0.42,
+            stagger: 0.09,
+            ease: "power2.inOut",
+            onUpdate: () => scene.render(),
+          },
           0.46
         )
         // 玻璃凝结(晚于框线闭合过半)
@@ -554,29 +537,40 @@ export function createConstellationPanel(scene) {
           },
           0.34
         )
-        // 5) 框线退场、四角熄灭
-        .to(edges, { opacity: 0, duration: 0.3, stagger: 0.04 }, 0.5)
-        .to(corners, { opacity: 0, duration: 0.3, stagger: 0.04 }, 0.56)
-        // 6) delta 归零、星群归位:节点回到当前锚定位,无需补间回旧坐标
+        // 5) 框边反向生长退回节点,权重归零:四角回到 master timeline 当前
+        //    滚动状态,其余原连线恢复——框重新变成网络。
         .to(
-          deltas,
-          { dx: 0, dy: 0, duration: 0.4, ease: "power2.inOut", onUpdate: applyDeltaFrame },
-          0.58
+          frameLinkOv,
+          {
+            drawProgress: 0,
+            duration: 0.34,
+            stagger: 0.05,
+            ease: "power2.inOut",
+            onUpdate: () => scene.render(),
+          },
+          0.42
         )
         .to(
           scene.state.interaction,
-          { weight: 0, duration: 0.4, ease: "power2.inOut", onUpdate: () => scene.render() },
-          0.58
+          {
+            weight: 0,
+            ambientStarWeight: 0,
+            duration: 0.44,
+            ease: "power2.inOut",
+            onUpdate: () => scene.render(),
+          },
+          0.5
         );
       return tl;
     }
 
-    function buildReassembleTimeline(targetDeltas) {
+    function buildReassembleTimeline() {
       killActive();
       resetForForm();
       panelState = "REASSEMBLING";
-      primeEdges();
-      gsap.set(corners, { opacity: 0 });
+      frameLinkOv.forEach((ov) => {
+        ov.drawProgress = 0;
+      });
       gsap.set(glass, { opacity: 0, scale: 0.985 });
       gsap.set(allText, { opacity: 0, y: 14 });
 
@@ -590,21 +584,16 @@ export function createConstellationPanel(scene) {
       activeTl = tl;
 
       tl.to(
-        deltas,
+        scene.state.interaction,
         {
-          dx: (i) => targetDeltas[i].dx,
-          dy: (i) => targetDeltas[i].dy,
+          weight: 1,
+          ambientStarWeight: 1,
           duration: 0.5,
           ease: "power3.inOut",
-          onUpdate: applyDeltaFrame,
+          onUpdate: () => scene.render(),
         },
         0
       )
-        .to(
-          scene.state.interaction,
-          { weight: 1, duration: 0.5, ease: "power3.inOut", onUpdate: () => scene.render() },
-          0
-        )
         // 星尘先被"吸引"提亮,再收回出生位并融入文字
         .to(
           particles.map((p) => p.el),
@@ -623,10 +612,15 @@ export function createConstellationPanel(scene) {
           },
           0.12
         )
-        .to(corners, { opacity: 1, duration: 0.24, stagger: 0.04 }, 0.2)
         .to(
-          edges,
-          { opacity: 0.9, strokeDashoffset: 0, duration: 0.34, stagger: 0.07, ease: "power2.inOut" },
+          frameLinkOv,
+          {
+            drawProgress: 1,
+            duration: 0.34,
+            stagger: 0.07,
+            ease: "power2.inOut",
+            onUpdate: () => scene.render(),
+          },
           0.26
         )
         .to(glass, { opacity: 1, scale: 1, duration: 0.3, ease: "power2.out" }, 0.44)
@@ -637,6 +631,7 @@ export function createConstellationPanel(scene) {
     }
 
     // 快速收起:离场 / 滚动超限的缩短版仪式(≤400ms),不播完整关闭。
+    // 同一套原场景恢复:权重归零后覆盖失去混合权重,场景自动回到网络态。
     function buildFastCollapseTimeline() {
       killActive();
       panelState = "FAST_COLLAPSING";
@@ -658,40 +653,39 @@ export function createConstellationPanel(scene) {
       tl.to(panel, { opacity: 0, duration: 0.28, ease: "power1.in" }, 0)
         .to(
           scene.state.interaction,
-          { weight: 0, duration: 0.28, ease: "power1.in", onUpdate: () => scene.render() },
+          {
+            weight: 0,
+            ambientStarWeight: 0,
+            duration: 0.28,
+            ease: "power1.in",
+            onUpdate: () => scene.render(),
+          },
           0
         )
-        .to(
-          deltas,
-          { dx: 0, dy: 0, duration: 0.28, ease: "power1.in", onUpdate: applyDeltaFrame },
-          0
-        );
+        .to(frameLinkOv, { drawProgress: 0, duration: 0.28, ease: "power1.in" }, 0);
       return tl;
     }
 
     // ---------- reduced-motion:无运动的稳定形态 ----------
-    function openStatic(targetDeltas) {
+    // 仍复用原节点与原连线:直接切到框状态,不切回任何假框。
+    function openStatic() {
       panelState = "READING";
       residueShown = false;
-      targetDeltas.forEach((t, i) => {
-        deltas[i].dx = t.dx;
-        deltas[i].dy = t.dy;
+      frameLinkOv.forEach((ov) => {
+        ov.drawProgress = 1;
       });
+      scene.state.interaction.weight = 1;
+      scene.state.interaction.ambientStarWeight = 1;
+      scene.render();
       syncFrame();
       panel.classList.add("is-open", "is-static");
       section.classList.add("belief-panel-live");
+      cornerEls.forEach((el) => el.classList.add("is-panel-corner"));
       setExpanded(true);
       gsap.set(panel, { opacity: 1 });
       gsap.set(allText, { opacity: 1, y: 0 });
       gsap.set(glass, { opacity: 1, scale: 1 });
-      fullEdges();
-      gsap.set(edges, { opacity: 0.9 });
-      gsap.set(corners, { opacity: 1 });
       gsap.set(particles.map((p) => p.el), { opacity: 0 });
-      // reduced-motion 下不征用星群(场景本就静止,覆盖只会留下孤点)
-      scene.state.interaction.weight = 0;
-      scene.state.interaction.starOverrides.clear();
-      scene.render();
     }
 
     function closeStatic() {
@@ -721,9 +715,15 @@ export function createConstellationPanel(scene) {
       const finalW = Math.max(...finalPts.map((p) => p.x)) - Math.min(...finalPts.map((p) => p.x));
       contentHeight = measureContent(finalW);
 
-      cornerStars = pickCornerStars();
-      resetDeltas();
-      syncFrame(); // delta 为 0:覆盖与框先对齐到节点基准位
+      // 位移目标静态就位,写入覆盖。此时 weight 为 0:场景仍是原网络,
+      // 覆盖只是准备好混合目标,运动全部由后续补间 weight 驱动。
+      targetDeltas.forEach((t, i) => {
+        deltas[i].dx = t.dx;
+        deltas[i].dy = t.dy;
+      });
+      writeOverrides();
+      syncFrame();
+      scene.render();
 
       if (!particles.length) {
         const secRect = section.getBoundingClientRect();
@@ -738,17 +738,18 @@ export function createConstellationPanel(scene) {
       }
 
       if (reduceMotion) {
-        openStatic(targetDeltas);
+        openStatic();
         return;
       }
       panel.classList.add("is-open");
       setExpanded(true);
       section.classList.add("belief-panel-live");
+      cornerEls.forEach((el) => el.classList.add("is-panel-corner"));
       gsap.set(panel, { opacity: 1 });
       if (residueShown) {
-        buildReassembleTimeline(targetDeltas);
+        buildReassembleTimeline();
       } else {
-        buildFormTimeline(targetDeltas);
+        buildFormTimeline();
       }
     }
 
@@ -795,7 +796,23 @@ export function createConstellationPanel(scene) {
           if (residueShown) gsap.set(p.el, { x: p.scatter.x, y: p.scatter.y });
         });
       }
-      if (VISIBLE_STATES.has(panelState)) syncFrame();
+      if (VISIBLE_STATES.has(panelState)) {
+        // 新视口尺寸下重算位移目标,写回覆盖(保留当前 drawProgress 不重播)
+        const targetDeltas = computeTargetDeltas(bases);
+        targetDeltas.forEach((t, i) => {
+          deltas[i].dx = t.dx;
+          deltas[i].dy = t.dy;
+        });
+        const it = scene.state.interaction;
+        cfg.nodeOrder.forEach((nodeIndex, k) => {
+          const ov = it.nodeOverrides.get(nodeIndex);
+          if (ov) {
+            ov.dx = deltas[k].dx;
+            ov.dy = deltas[k].dy;
+          }
+        });
+        scene.render();
+      }
     }
 
     // ---------- 交互接线 ----------
