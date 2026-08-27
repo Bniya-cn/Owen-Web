@@ -1,0 +1,45 @@
+/* Fontshare self-hosted (assets/fonts/, see SOURCE.md). Static weights only; the
+* page's occasional font-weight:650 falls back to the nearest declared weight (700)
+* via the browser's normal font-matching, no dedicated 650 face is needed. */
+@font-face {
+font-family: "Satoshi";
+src: url("../../assets/fonts/satoshi-400.woff2") format("woff2");
+font-weight: 400;
+font-style: normal;
+font-display: swap;
+}
+@font-face {
+font-family: "Satoshi";
+src: url("../../assets/fonts/satoshi-500.woff2") format("woff2");
+font-weight: 500;
+font-style: normal;
+font-display: swap;
+}
+@font-face {
+font-family: "Satoshi";
+src: url("../../assets/fonts/satoshi-700.woff2") format("woff2");
+font-weight: 700;
+font-style: normal;
+font-display: swap;
+}
+@font-face {
+font-family: "Cabinet Grotesk";
+src: url("../../assets/fonts/cabinet-grotesk-700.woff2") format("woff2");
+font-weight: 700;
+font-style: normal;
+font-display: swap;
+}
+@font-face {
+font-family: "Clash Display";
+src: url("../../assets/fonts/clash-display-600.woff2") format("woff2");
+font-weight: 600;
+font-style: normal;
+font-display: swap;
+}
+@font-face {
+font-family: "Clash Display";
+src: url("../../assets/fonts/clash-display-700.woff2") format("woff2");
+font-weight: 700;
+font-style: normal;
+font-display: swap;
+}

@@ -1,0 +1,182 @@
+<!-- @dsCard group="Foundations" -->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Color Tokens</title>
+<style>
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+  @font-face { font-family: "Cabinet Grotesk"; src: url("../assets/fonts/cabinet-grotesk-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+  :root {
+    --bg: #070a06;
+    --ink: #dfe6d6;
+    --muted: #a6b09a;
+    --quiet: #718064;
+    --signal: #c7f464;
+    --support-rgb: 83 97 51;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 48px 44px 56px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Satoshi", "PingFang SC", "Avenir Next", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--signal);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .kicker::before { content: ""; width: 28px; height: 1px; background: var(--signal); }
+
+  h1 {
+    margin: 18px 0 10px;
+    font-family: "Cabinet Grotesk", "PingFang SC", sans-serif;
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+
+  .intro {
+    max-width: 62ch;
+    margin: 0 0 44px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+
+  .tier { margin-bottom: 40px; }
+
+  .tier__head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgb(var(--support-rgb) / 0.42);
+  }
+  .tier__name { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+  .tier__role { color: var(--quiet); font-size: 12px; }
+
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+    gap: 14px;
+  }
+
+  .swatch { min-width: 0; }
+
+  .swatch__chip {
+    height: 74px;
+    border: 1px solid rgb(var(--support-rgb) / 0.34);
+    border-radius: 2px;
+  }
+
+  .swatch__token {
+    margin-top: 11px;
+    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  .swatch__hex {
+    margin-top: 3px;
+    color: var(--signal);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 11.5px;
+    text-transform: uppercase;
+  }
+
+  .swatch__use {
+    margin-top: 5px;
+    color: var(--quiet);
+    font-size: 11px;
+    line-height: 1.55;
+  }
+
+  .note {
+    max-width: 68ch;
+    margin-top: 8px;
+    padding-top: 18px;
+    border-top: 1px solid rgb(var(--support-rgb) / 0.42);
+    color: var(--muted);
+    font-size: 12.5px;
+    line-height: 1.8;
+  }
+  .note strong { color: var(--ink); font-weight: 700; }
+</style>
+</head>
+<body>
+  <span class="kicker">Foundations / Palette</span>
+  <h1>色板</h1>
+  <p class="intro">深墨绿基底 + 单一黄绿信号色。整套系统只有一个强调色,所有交互、焦点与活跃状态都由它承担;暖琥珀是唯一例外,仅用于极小的演示状态标记。<strong>色板是锁定的——不新增色相。</strong></p>
+
+  <section class="tier">
+    <div class="tier__head">
+      <span class="tier__name">Ground</span>
+      <span class="tier__role">基底层 · 页面与区块背景,由深到浅五层</span>
+    </div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch__chip" style="background:#070a06"></div><div class="swatch__token">--bg</div><div class="swatch__hex">#070A06</div><div class="swatch__use">页面基底</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#0b100a"></div><div class="swatch__token">--deep</div><div class="swatch__hex">#0B100A</div><div class="swatch__use">渐变中段</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#10170b"></div><div class="swatch__token">--forest</div><div class="swatch__hex">#10170B</div><div class="swatch__use">渐变末端 · 节点底色</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#12190d"></div><div class="swatch__token">--olive-black</div><div class="swatch__hex">#12190D</div><div class="swatch__use">超宽屏边缘纵深</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#142412"></div><div class="swatch__token">--structure</div><div class="swatch__hex">#142412</div><div class="swatch__use">卡面 · 核心圆填充</div></div>
+    </div>
+  </section>
+
+  <section class="tier">
+    <div class="tier__head">
+      <span class="tier__name">Middle</span>
+      <span class="tier__role">中间层 · 光晕、连接线与结构分隔</span>
+    </div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch__chip" style="background:#314322"></div><div class="swatch__token">--middle</div><div class="swatch__hex">#314322</div><div class="swatch__use">区块环境光晕</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#3d5230"></div><div class="swatch__token">--journey</div><div class="swatch__hex">#3D5230</div><div class="swatch__use">轨迹连接线渐隐端</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#4f6a31"></div><div class="swatch__token">--source</div><div class="swatch__hex">#4F6A31</div><div class="swatch__use">指针光场 · 活跃态填充</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#536133"></div><div class="swatch__token">--support</div><div class="swatch__hex">#536133</div><div class="swatch__use">结构分隔线(非交互)</div></div>
+    </div>
+  </section>
+
+  <section class="tier">
+    <div class="tier__head">
+      <span class="tier__name">Signal</span>
+      <span class="tier__role">信号层 · 唯一强调色,标记一切可交互与活跃状态</span>
+    </div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch__chip" style="background:#c7f464"></div><div class="swatch__token">--signal</div><div class="swatch__hex">#C7F464</div><div class="swatch__use">主信号 · 强调文字 · 节点</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#d7f685"></div><div class="swatch__token">--signal-light</div><div class="swatch__hex">#D7F685</div><div class="swatch__use">次级标签 · 可展开触发器</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#e8ff9e"></div><div class="swatch__token">--signal-border</div><div class="swatch__hex">#E8FF9E</div><div class="swatch__use">活跃描边 · 焦点环</div></div>
+    </div>
+  </section>
+
+  <section class="tier">
+    <div class="tier__head">
+      <span class="tier__name">Ink</span>
+      <span class="tier__role">文字层 · 三级层次,承担全部可读性</span>
+    </div>
+    <div class="swatches">
+      <div class="swatch"><div class="swatch__chip" style="background:#dfe6d6"></div><div class="swatch__token">--ink</div><div class="swatch__hex">#DFE6D6</div><div class="swatch__use">标题与主文</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#a6b09a"></div><div class="swatch__token">--muted</div><div class="swatch__hex">#A6B09A</div><div class="swatch__use">正文段落</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#718064"></div><div class="swatch__token">--quiet</div><div class="swatch__hex">#718064</div><div class="swatch__use">注释 · 出处 · 元信息</div></div>
+      <div class="swatch"><div class="swatch__chip" style="background:#ca8650"></div><div class="swatch__token">--warm</div><div class="swatch__hex">#CA8650</div><div class="swatch__use">仅演示状态标记</div></div>
+    </div>
+  </section>
+
+  <p class="note"><strong>使用规则.</strong> 透明度通过 <code>rgb(var(--token-rgb) / α)</code> 表达,不引入新的 hex。分隔线用 <code>--support</code> 的 0.4 透明度;交互相关的环与描边用 <code>--signal</code> 的 0.12–0.32。信号色永远不做大面积填充——它只出现在线、点、小面积活跃态和强调字上。</p>
+</body>
+</html>

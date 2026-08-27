@@ -6,7 +6,16 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Node (for future project-level evolution)
+# Node / build
 node_modules/
 dist/
 *.log
+
+# Test artifacts (QA 闭环产物,本地查看,不入库)
+artifacts/
+test-results/
+playwright-report/
+.vercel
+
+# Vercel deploy temp scripts
+.vercel-tmp/

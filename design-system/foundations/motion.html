@@ -1,0 +1,245 @@
+<!-- @dsCard group="Foundations" -->
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Motion Grammar</title>
+<style>
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Satoshi"; src: url("../assets/fonts/satoshi-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+  @font-face { font-family: "Cabinet Grotesk"; src: url("../assets/fonts/cabinet-grotesk-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+  :root {
+    --bg: #070a06;
+    --forest: #10170b;
+    --ink: #dfe6d6;
+    --muted: #a6b09a;
+    --quiet: #718064;
+    --signal: #c7f464;
+    --signal-light: #d7f685;
+    --signal-border: #e8ff9e;
+    --source-rgb: 79 106 49;
+    --support-rgb: 83 97 51;
+    --ease: cubic-bezier(0.2, 0, 0, 1);
+    --display: "Cabinet Grotesk", "PingFang SC", sans-serif;
+    --body: "Satoshi", "Avenir Next", "PingFang SC", sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0; padding: 48px 44px 56px;
+    background: var(--bg); color: var(--ink);
+    font-family: var(--body); -webkit-font-smoothing: antialiased;
+  }
+
+  .kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    color: var(--signal); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .kicker::before { content: ""; width: 28px; height: 1px; background: var(--signal); }
+
+  h1 {
+    margin: 18px 0 10px; font-family: var(--display);
+    font-size: 44px; font-weight: 700; letter-spacing: -0.05em; line-height: 1;
+  }
+  .intro { max-width: 64ch; margin: 0 0 44px; color: var(--muted); font-size: 14px; line-height: 1.8; }
+  .intro strong { color: var(--ink); font-weight: 700; }
+
+  h2 {
+    margin: 0 0 20px; padding-bottom: 12px;
+    border-bottom: 1px solid rgb(var(--support-rgb) / 0.42);
+    font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  section { margin-bottom: 48px; }
+
+  .ease-row { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 34px; align-items: center; }
+  .curve { border: 1px solid rgb(var(--support-rgb) / 0.4); background: rgb(16 23 11 / 0.5); }
+  .ease-spec { color: var(--quiet); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11.5px; line-height: 1.9; }
+  .ease-spec b { display: block; color: var(--signal-light); font-family: var(--body); font-size: 12px; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .ease-note { margin-top: 14px; color: var(--muted); font-size: 12.5px; line-height: 1.8; max-width: 46ch; font-family: var(--body); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 0 14px 11px 0; text-align: left; color: var(--quiet);
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    border-bottom: 1px solid rgb(var(--support-rgb) / 0.4);
+  }
+  td { padding: 15px 14px 15px 0; border-bottom: 1px solid rgb(var(--support-rgb) / 0.28); vertical-align: top; font-size: 13px; }
+  td.dur { color: var(--signal); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; white-space: nowrap; }
+  td.what { color: var(--ink); }
+  td.why { color: var(--quiet); font-size: 12px; line-height: 1.7; }
+
+  .demos { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 22px; }
+  .demo {
+    padding: 22px 20px 20px;
+    border: 1px solid rgb(var(--support-rgb) / 0.38);
+    background: rgb(16 23 11 / 0.4);
+  }
+  .demo__name { color: var(--signal-light); font-size: 12px; font-weight: 700; letter-spacing: 0.06em; }
+  .demo__spec { margin-top: 5px; color: var(--quiet); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; }
+  .demo__stage { margin-top: 18px; min-height: 74px; display: flex; align-items: center; }
+
+  .reveal-item {
+    display: block; width: 100%; height: 13px; margin-bottom: 7px;
+    background: linear-gradient(90deg, rgb(var(--source-rgb) / 0.85), rgb(var(--source-rgb) / 0.12));
+  }
+  .replay .reveal-item { animation: reveal 0.64s var(--ease) backwards; }
+  .replay .reveal-item:nth-child(2) { animation-delay: 0.07s; }
+  .replay .reveal-item:nth-child(3) { animation-delay: 0.14s; }
+  .replay .reveal-item:nth-child(4) { animation-delay: 0.21s; }
+  @keyframes reveal { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+  .node {
+    display: grid; width: 84px; height: 84px; place-items: center;
+    border: 1px solid rgb(199 244 100 / 0.32); border-radius: 50%;
+    background: rgb(16 23 11 / 0.62); color: var(--ink);
+    font: inherit; font-size: 11px; letter-spacing: 0.06em; cursor: pointer;
+    transition: transform 360ms var(--ease), border-color 360ms ease, background 360ms ease;
+  }
+  .node:hover, .node:focus-visible { border-color: var(--signal-border); background: rgb(var(--source-rgb) / 0.5); outline: none; transform: scale(1.08); }
+
+  .protocol { width: 100%; border-top: 1px solid rgb(var(--support-rgb) / 0.4); }
+  .protocol button {
+    display: grid; grid-template-columns: 46px 1fr; gap: 12px; width: 100%;
+    padding: 13px 0; align-items: center; text-align: left;
+    border: 0; border-bottom: 1px solid rgb(var(--support-rgb) / 0.4);
+    background: transparent; color: var(--quiet); font: inherit; font-size: 13px; cursor: pointer;
+    transition: color 280ms ease, transform 280ms var(--ease), background 280ms ease;
+  }
+  .protocol button span:first-child { color: var(--signal); font-size: 11px; }
+  .protocol button:hover, .protocol button.is-active { color: var(--ink); background: linear-gradient(90deg, rgb(var(--source-rgb) / 0.4), transparent); transform: translateX(14px); }
+
+  .rail { position: relative; width: 100%; height: 2px; background: rgb(199 244 100 / 0.08); }
+  .rail span { display: block; height: 100%; background: var(--signal); transform-origin: left center; transform: scaleX(0.42); transition: transform 300ms linear; }
+
+  .replay-btn {
+    margin-top: 16px; padding: 8px 15px; min-height: 34px;
+    border: 1px solid rgb(199 244 100 / 0.3); background: transparent;
+    color: var(--signal-light); font: inherit; font-size: 11px; letter-spacing: 0.08em; cursor: pointer;
+    transition: border-color 200ms ease, background 200ms ease;
+  }
+  .replay-btn:hover { border-color: var(--signal-border); background: rgb(var(--source-rgb) / 0.28); }
+
+  .rules { display: grid; gap: 0; }
+  .rule {
+    display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 14px;
+    padding: 15px 0; border-bottom: 1px solid rgb(var(--support-rgb) / 0.3);
+  }
+  .rule__no { color: var(--signal); font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
+  .rule__text { color: var(--muted); font-size: 13px; line-height: 1.75; }
+  .rule__text b { color: var(--ink); font-weight: 700; }
+</style>
+</head>
+<body>
+  <span class="kicker">Foundations / Motion</span>
+  <h1>动效语法</h1>
+  <p class="intro">整套系统只有<strong>一条缓动曲线</strong>。动效的职责是让内容的到达显得从容,而不是让页面看起来很忙——<strong>动效要完成动作,不要持续呼吸。</strong>页面上没有任何无限循环的装饰性动画。</p>
+
+  <section>
+    <h2>Easing</h2>
+    <div class="ease-row">
+      <svg class="curve" viewBox="0 0 120 120" width="200" height="200" aria-label="缓动曲线">
+        <defs><linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#4f6a31" /><stop offset="1" stop-color="#c7f464" />
+        </linearGradient></defs>
+        <line x1="10" y1="110" x2="110" y2="110" stroke="#536133" stroke-opacity="0.5" stroke-width="1" />
+        <line x1="10" y1="110" x2="10" y2="10" stroke="#536133" stroke-opacity="0.5" stroke-width="1" />
+        <line x1="10" y1="10" x2="110" y2="10" stroke="#536133" stroke-opacity="0.2" stroke-width="1" stroke-dasharray="2 3" />
+        <path d="M10 110 C 30 110, 10 10, 110 10" fill="none" stroke="url(#g)" stroke-width="2" />
+        <circle cx="10" cy="110" r="2.5" fill="#c7f464" />
+        <circle cx="110" cy="10" r="2.5" fill="#c7f464" />
+      </svg>
+      <div>
+        <div class="ease-spec">
+          <b>field-ease</b>
+          cubic-bezier(0.2, 0, 0, 1)<br />
+          CustomEase.create("field-ease", "0.2,0,0,1")<br />
+          gsap.defaults({ ease: "field-ease" })
+        </div>
+        <p class="ease-note">前段几乎立即启动,后段长距离减速收尾。所有 CSS 过渡与 GSAP 补间共用它,唯二例外是进度条(<code>ease: none</code>,必须线性反映滚动位置)和数字递增(<code>power2.out</code>)。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Duration</h2>
+    <table>
+      <thead><tr><th style="width:104px">时长</th><th style="width:200px">用于</th><th>为什么</th></tr></thead>
+      <tbody>
+        <tr><td class="dur">200–280ms</td><td class="what">交互反馈</td><td class="why">协议项选择、按钮描边、展开标记旋转。快到不被察觉为"动画",只被感觉为"响应"。</td></tr>
+        <tr><td class="dur">360ms</td><td class="what">节点状态</td><td class="why">信号节点的缩放与描边。比纯反馈略慢,因为它同时改变了三个属性。</td></tr>
+        <tr><td class="dur">500ms</td><td class="what">列表瀑布</td><td class="why">列表项逐条到达,单项 0.5s、间隔 0.07s。</td></tr>
+        <tr><td class="dur">640ms</td><td class="what">章节揭示</td><td class="why">整章内容进入视口。全站最慢的一次性动作,每章只触发一次。</td></tr>
+        <tr><td class="dur">600ms</td><td class="what">一次性涟漪</td><td class="why">选中节点时圆环的单次响应。<b>不循环</b>。</td></tr>
+        <tr><td class="dur">1.2s</td><td class="what">环境光晕</td><td class="why">区块背景光晕的位移与显影,慢到不构成干扰。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Patterns</h2>
+    <div class="demos">
+      <div class="demo">
+        <div class="demo__name">Section Reveal</div>
+        <div class="demo__spec">y:18→0 · stagger 0.07 · 0.64s</div>
+        <div class="demo__stage"><div style="width:100%">
+          <b class="reveal-item"></b><b class="reveal-item"></b><b class="reveal-item"></b><b class="reveal-item"></b>
+        </div></div>
+        <button class="replay-btn" data-replay>重放</button>
+      </div>
+
+      <div class="demo">
+        <div class="demo__name">Node Select</div>
+        <div class="demo__spec">scale 1.08 · 360ms · hover</div>
+        <div class="demo__stage"><button class="node" type="button">定静</button></div>
+      </div>
+
+      <div class="demo">
+        <div class="demo__name">Protocol Select</div>
+        <div class="demo__spec">translateX 14px · 280ms</div>
+        <div class="demo__stage"><div class="protocol">
+          <button type="button" class="is-active"><span>看见</span><span>先看真实问题</span></button>
+          <button type="button"><span>表达</span><span>直接,也保留善意</span></button>
+        </div></div>
+      </div>
+
+      <div class="demo">
+        <div class="demo__name">Progress Rail</div>
+        <div class="demo__spec">scaleX · ease none · scrub 0.3</div>
+        <div class="demo__stage"><div class="rail"><span></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Rules</h2>
+    <div class="rules">
+      <div class="rule"><span class="rule__no">01</span><span class="rule__text"><b>动效要完成动作,不要持续呼吸。</b>没有无限循环的装饰动画。选中反馈是一次性涟漪,不是脉冲。</span></div>
+      <div class="rule"><span class="rule__no">02</span><span class="rule__text">只动 <b>transform</b> 和 <b>opacity</b>,以及 CSS 变量驱动的渐变位置。不在滚动帧里改布局属性。</span></div>
+      <div class="rule"><span class="rule__no">03</span><span class="rule__text">章节揭示 <b>每章只触发一次</b>(<code>once: true</code>),回滚不重放——重复播放会让页面显得廉价。</span></div>
+      <div class="rule"><span class="rule__no">04</span><span class="rule__text">连续值(指针位置、滚动进度)<b>不经过组件状态</b>,直接写入 CSS 变量或 transform。离散状态只在动作结束时提交一次。</span></div>
+      <div class="rule"><span class="rule__no">05</span><span class="rule__text"><b>动效是渐进增强。</b>动效层加载失败时,内容停在完全可见的静态状态,页面依然完整可读。</span></div>
+      <div class="rule"><span class="rule__no">06</span><span class="rule__text"><code>prefers-reduced-motion</code> 下移除所有非必要动效,但<b>保留进度条</b>——它传达的是真实位置,不是装饰。</span></div>
+    </div>
+  </section>
+
+<script>
+  document.querySelectorAll("[data-replay]").forEach((btn) => {
+    const stage = btn.parentElement.querySelector(".demo__stage > div");
+    btn.addEventListener("click", () => {
+      stage.classList.remove("replay");
+      void stage.offsetWidth;
+      stage.classList.add("replay");
+    });
+  });
+  document.querySelectorAll(".protocol").forEach((list) => {
+    const items = [...list.querySelectorAll("button")];
+    items.forEach((item) => item.addEventListener("click", () => {
+      items.forEach((i) => i.classList.toggle("is-active", i === item));
+    }));
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,999 @@
+/* 章节氛围图像层（编辑风低对比素材）。
+ *
+ * 层次契约（与 scene.css 一致，不用负 z-index）：
+ *   .field-scene            fixed 全屏，z-index 0
+ *   .chapter-plate          章节内 absolute，z-index 1（场景之上、内容之下）
+ *   内容子元素               z-index 2（回到图像之上）
+ *
+ * 用真实 <img loading="lazy"> 而非 CSS 背景：浏览器对 background-image 没有
+ * 可靠的原生懒加载合同，<img> 才有。图像失败时仅少一层氛围，正文不受影响。 */
+.chapter-plate {
+position: absolute;
+inset: 0;
+z-index: 1;
+width: 100%;
+height: 100%;
+object-fit: cover;
+opacity: 0.3;
+pointer-events: none;
+}
+
+/* 多向渐变蒙版羽化边缘，让图像四边消融进深底。mask 与 -webkit-mask
+ * 双写；不支持 mask 的浏览器自动退化为低透明度完整图（仍可用）。 */
+@supports ((mask-image: linear-gradient(#000, #000)) or (-webkit-mask-image: linear-gradient(#000, #000))) {
+.chapter-plate {
+-webkit-mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 72%, transparent),
+linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+-webkit-mask-composite: source-in;
+mask-image: linear-gradient(to bottom, transparent, #000 24%, #000 72%, transparent),
+linear-gradient(to right, transparent, #000 18%, #000 82%, transparent);
+mask-composite: intersect;
+}
+}
+
+/* 内容层回到图像之上：章节内非装饰、非图像的直接子元素显式提升。 */
+.field-section > *:not(.section-mantra):not(.final-line):not(.chapter-plate) {
+position: relative;
+z-index: 2;
+}
+
+.field-markers {
+display: grid;
+grid-template-columns: repeat(3, minmax(0, 1fr));
+max-width: 660px;
+margin-top: 58px;
+border-top: 1px solid rgb(var(--support-rgb) / 0.42);
+border-bottom: 1px solid rgb(var(--support-rgb) / 0.42);
+}
+
+.field-marker {
+position: relative;
+display: grid;
+gap: 7px;
+padding: 18px 18px 18px 0;
+color: var(--muted);
+}
+
+.field-marker + .field-marker {
+padding-left: 20px;
+border-left: 1px solid rgb(var(--support-rgb) / 0.4);
+}
+
+.field-marker__name {
+color: var(--signal-light);
+font-size: 12px;
+font-weight: 700;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+}
+
+.field-marker__detail {
+color: var(--quiet);
+font-size: 12px;
+font-weight: 500;
+}
+
+/* 首屏信号舞台:四张信号卡片驻留四角,选中的卡片飞到中心放大展开,
+ * 其余缩小退让;再点击缩小的卡片即切换。动效层用 GSAP Flip 接管
+ * 位移时会给舞台加 .is-flipping 关闭 CSS transition,保证单一写者;
+ * 无动效的静态回退靠下方 transition/visibility 直接完成形态切换。 */
+.field-stage {
+position: absolute;
+right: 3%;
+bottom: 6%;
+width: min(45vw, 560px);
+aspect-ratio: 1;
+opacity: 0.96;
+}
+
+/* 底层双环只是安静的轨道暗示,不再承担交互。 */
+.field-stage::before,
+.field-stage::after {
+position: absolute;
+inset: 5%;
+border: 1px solid rgb(199 244 100 / 0.09);
+border-radius: 50%;
+content: "";
+pointer-events: none;
+}
+
+.field-stage::after {
+inset: 24%;
+border-color: rgb(199 244 100 / 0.13);
+}
+
+.signal-deck {
+position: absolute;
+inset: 0;
+display: grid;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+grid-template-rows: repeat(2, minmax(0, 1fr));
+gap: clamp(14px, 4%, 26px);
+}
+
+/* 显式占格:展开的卡片脱离文档流后,其余卡片不被重新流式排布。 */
+.signal-card:nth-child(1) { grid-area: 1 / 1; }
+.signal-card:nth-child(2) { grid-area: 1 / 2; }
+.signal-card:nth-child(3) { grid-area: 2 / 1; }
+.signal-card:nth-child(4) { grid-area: 2 / 2; }
+
+.signal-card {
+position: relative;
+display: flex;
+flex-direction: column;
+gap: 9px;
+align-items: center;
+justify-content: center;
+padding: 16px;
+border: 1px solid rgb(199 244 100 / 0.24);
+border-radius: 20px;
+color: var(--ink);
+background:
+radial-gradient(120% 90% at 50% 0%, rgb(var(--structure-rgb) / 0.55), transparent 62%),
+linear-gradient(165deg, rgb(16 23 11 / 0.9), rgb(11 16 10 / 0.8));
+cursor: pointer;
+transition:
+transform 700ms var(--ease),
+opacity 460ms ease,
+border-color 320ms ease,
+box-shadow 320ms ease;
+}
+
+.signal-card:not(.is-expanded):hover,
+.signal-card:not(.is-expanded):focus-visible {
+border-color: var(--signal-border);
+outline: none;
+transform: translateY(-4px);
+box-shadow: 0 14px 34px rgb(0 0 0 / 0.36), 0 0 26px rgb(199 244 100 / 0.12);
+}
+
+.signal-card__frame {
+width: 54%;
+aspect-ratio: 1;
+overflow: hidden;
+border: 1px solid rgb(199 244 100 / 0.3);
+border-radius: 50%;
+box-shadow: 0 0 26px rgb(199 244 100 / 0.08);
+}
+
+.signal-card__frame img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+display: block;
+}
+
+/* 卡片内所有装饰层一律不吃指针事件:点击必须落在 button 本体上,
+ * 否则子元素会成为事件目标,展开卡片的穿透逻辑也会被内层拦截。 */
+.signal-card__frame,
+.signal-card__frame img,
+.signal-card__word,
+.signal-card__en,
+.signal-card__detail,
+.signal-card__ring {
+pointer-events: none;
+}
+
+.signal-card__word {
+font-family: "Kaiti SC", "STKaiti", "KaiTi", "PingFang SC", serif;
+font-size: 18px;
+font-weight: 700;
+letter-spacing: 0.3em;
+padding-left: 0.3em; /* 抵消末字字距,保持视觉居中 */
+}
+
+.signal-card__en {
+color: var(--quiet);
+font-size: 10px;
+font-weight: 500;
+letter-spacing: 0.24em;
+text-transform: uppercase;
+}
+
+/* 退让态:缩小、降饱和,但仍可点击用于切换。 */
+.signal-card.is-dimmed {
+opacity: 0.42;
+transform: scale(0.84);
+filter: saturate(0.72);
+}
+
+.signal-card.is-dimmed:hover,
+.signal-card.is-dimmed:focus-visible {
+opacity: 0.82;
+}
+
+/* 展开态:脱离网格落位舞台中心,图腾铺成背景,细节层接管内容。
+ * 展开卡片自身没有点击行为,放开指针事件让点击能穿透到被它遮住的
+ * 四角缩小卡片——"点缩小的卡片即切换"必须始终可达。 */
+.signal-card.is-expanded {
+pointer-events: none;
+position: absolute;
+top: 50%;
+left: 50%;
+z-index: 4;
+/* 占满整个网格区域,让下方 width:72% 稳定以整块舞台为参照解析,
+ * 否则绝对定位的网格项会退化到单个网格单元(移动端会明显偏小)。 */
+grid-area: 1 / 1 / -1 / -1;
+width: 72%;
+aspect-ratio: 0.86;
+padding: 0;
+transform: translate(-50%, -50%);
+border-color: rgb(232 255 158 / 0.5);
+border-radius: 26px;
+background:
+radial-gradient(120% 88% at 50% 10%, rgb(var(--structure-rgb) / 0.94), transparent 64%),
+linear-gradient(168deg, rgb(13 20 9 / 0.96), rgb(7 10 6 / 0.97));
+box-shadow:
+0 26px 80px rgb(0 0 0 / 0.52),
+0 0 64px rgb(199 244 100 / 0.13);
+}
+
+.signal-card.is-expanded .signal-card__frame {
+position: absolute;
+inset: 0;
+width: auto;
+border: 0;
+border-radius: 26px;
+opacity: 0.3;
+box-shadow: none;
+}
+
+.signal-card.is-expanded .signal-card__word,
+.signal-card.is-expanded .signal-card__en {
+opacity: 0;
+}
+
+/* Flip 运行期间关闭 CSS transition,内联样式是唯一写者。 */
+.field-stage.is-flipping .signal-card {
+transition: none;
+}
+
+.signal-card__detail {
+position: absolute;
+inset: 0;
+z-index: 1;
+display: grid;
+place-content: center;
+gap: 14px;
+padding: clamp(18px, 6%, 34px);
+text-align: center;
+opacity: 0;
+visibility: hidden;
+transition: opacity 520ms var(--ease) 300ms, visibility 0s linear 820ms;
+pointer-events: none;
+}
+
+.signal-card.is-expanded .signal-card__detail {
+opacity: 1;
+visibility: visible;
+transition: opacity 520ms var(--ease) 300ms;
+}
+
+/* 艺术字:优先本地书法字体(macOS 的行楷/楷体),缺失时退回衬线。 */
+.signal-card__art {
+display: block;
+color: var(--signal-light);
+font-family: "Xingkai SC", "STXingkai", "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+font-size: clamp(48px, 5.4vw, 76px);
+font-weight: 700;
+letter-spacing: 0.18em;
+padding-left: 0.18em;
+line-height: 1.1;
+text-shadow:
+0 0 26px rgb(199 244 100 / 0.5),
+0 0 72px rgb(199 244 100 / 0.22);
+}
+
+/* JS 逐字包裹后的字符:默认继承终态,静态回退不受影响。 */
+.signal-card__art span {
+display: inline-block;
+}
+
+.signal-card__art-en {
+color: var(--signal);
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 0.34em;
+text-transform: uppercase;
+opacity: 0.85;
+}
+
+.signal-card__note {
+max-width: 26ch;
+margin: 0 auto;
+color: var(--muted);
+font-size: 13px;
+font-weight: 500;
+line-height: 1.85;
+}
+
+/* 一次性涟漪:仅在卡片新获得 .is-expanded 时播放,不做循环脉冲。 */
+.signal-card__ring {
+position: absolute;
+top: 50%;
+left: 50%;
+width: 42%;
+aspect-ratio: 1;
+border: 1px solid rgb(199 244 100 / 0.42);
+border-radius: 50%;
+opacity: 0;
+transform: translate(-50%, -50%);
+pointer-events: none;
+}
+
+.signal-card.is-expanded .signal-card__ring {
+animation: signal-ring 900ms var(--ease) 320ms both;
+}
+
+@keyframes signal-ring {
+0% { transform: translate(-50%, -50%) scale(0.42); opacity: 0.85; }
+100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+
+/* 读屏播报区:视觉隐藏,仅承载切换时的说明文本。 */
+.field-stage__live {
+position: absolute;
+width: 1px;
+height: 1px;
+margin: -1px;
+overflow: hidden;
+clip-path: inset(50%);
+white-space: nowrap;
+}
+
+/* KNOWN DEAD CSS: .field-rail / .field-rail__light have no matching element in the
+* body at any breakpoint (confirmed by full-file search). Left in place untouched
+* per V6.1 plan — do not wire up a new DOM element for it and do not extend it into
+* the wide-screen breakpoints; it stays inert. */
+.field-rail {
+position: absolute;
+top: 18%;
+right: clamp(18px, 4vw, 64px);
+bottom: 18%;
+width: 1px;
+background: linear-gradient(var(--signal), rgb(199 244 100 / 0.12));
+opacity: 0.5;
+}
+
+.field-rail__light {
+position: absolute;
+top: 12%;
+left: 50%;
+width: 7px;
+height: 7px;
+border-radius: 50%;
+background: var(--signal);
+box-shadow: 0 0 0 7px rgb(199 244 100 / 0.08);
+transform: translateX(-50%);
+animation: rail-drift 8s var(--ease) infinite alternate;
+}
+
+.signal-line {
+position: absolute;
+width: min(34vw, 520px);
+height: 1px;
+background: linear-gradient(90deg, transparent, var(--signal), transparent);
+opacity: 0.6;
+transform-origin: left center;
+}
+
+.signal-line--one { top: 26%; right: 12%; transform: rotate(26deg); }
+.signal-line--two { bottom: 24%; left: 8%; transform: rotate(-18deg); }
+
+.story-grid {
+display: grid;
+grid-template-columns: minmax(240px, 0.75fr) minmax(0, 1.25fr);
+gap: clamp(48px, 9vw, 160px);
+align-items: center;
+}
+
+.story-grid--reverse {
+grid-template-columns: minmax(0, 1.25fr) minmax(240px, 0.75fr);
+}
+
+.story-grid--reverse .story-copy {
+order: 2;
+}
+
+.story-copy {
+position: relative;
+}
+
+.story-copy::before {
+position: absolute;
+top: -26px;
+left: -36px;
+width: 1px;
+height: 110px;
+content: "";
+background: linear-gradient(var(--signal), transparent);
+opacity: 0.64;
+}
+
+.story-title {
+margin: 16px 0 16px;
+color: var(--ink);
+font-family: "Cabinet Grotesk", "Clash Display", "Avenir Next", "PingFang SC", sans-serif;
+font-size: clamp(42px, 6vw, 96px);
+font-weight: 700;
+letter-spacing: -0.05em;
+line-height: 1.04;
+}
+
+.story-title em {
+color: var(--signal);
+font-style: normal;
+}
+
+.story-body {
+max-width: 40ch;
+color: var(--muted);
+font-size: 16px;
+line-height: 1.85;
+}
+
+.story-body strong {
+color: var(--ink);
+}
+
+.thought-thread {
+position: relative;
+max-width: 42ch;
+margin: 30px 0 0;
+padding: 24px 0 0;
+color: var(--ink);
+font-size: clamp(18px, 2vw, 28px);
+font-weight: 500;
+line-height: 1.55;
+}
+
+.thought-thread::before {
+position: absolute;
+top: 0;
+left: 0;
+width: min(220px, 42%);
+height: 1px;
+content: "";
+background: linear-gradient(90deg, var(--signal), transparent);
+}
+
+.thought-thread em {
+color: var(--signal-light);
+font-style: normal;
+}
+
+.thought-source {
+display: block;
+margin-top: 12px;
+color: var(--quiet);
+font-size: 12px;
+font-weight: 500;
+letter-spacing: 0.08em;
+}
+
+.source-note {
+max-width: 54ch;
+margin-top: 22px;
+border-top: 1px solid rgb(var(--support-rgb) / 0.42);
+color: var(--muted);
+}
+
+.source-note summary {
+display: flex;
+min-height: 44px;
+width: fit-content;
+align-items: center;
+gap: 12px;
+color: var(--signal-light);
+cursor: pointer;
+font-size: 12px;
+font-weight: 500;
+list-style: none;
+}
+
+.source-note summary::-webkit-details-marker {
+display: none;
+}
+
+.source-note summary::after {
+content: "+";
+color: var(--signal);
+font-size: 18px;
+line-height: 1;
+transition: transform 240ms var(--ease);
+}
+
+.source-note[open] summary::after {
+transform: rotate(45deg);
+}
+
+.source-note__body {
+margin: 0;
+padding: 0 0 18px;
+color: var(--muted);
+font-size: 14px;
+line-height: 1.9;
+}
+
+.section-mantra {
+position: absolute;
+z-index: -1;
+right: -0.02em;
+bottom: -0.12em;
+color: rgb(199 244 100 / 0.045);
+font-family: "Cabinet Grotesk", "Clash Display", "PingFang SC", sans-serif;
+font-size: clamp(110px, 20vw, 330px);
+font-weight: 700;
+letter-spacing: -0.08em;
+line-height: 0.8;
+white-space: nowrap;
+pointer-events: none;
+user-select: none;
+}
+
+.poem-archive {
+display: grid;
+grid-column: 1 / -1;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+gap: clamp(34px, 7vw, 110px);
+margin-top: clamp(24px, 5vw, 70px);
+padding-top: clamp(28px, 5vw, 64px);
+border-top: 1px solid rgb(var(--support-rgb) / 0.46);
+}
+
+.poem-work {
+position: relative;
+min-width: 0;
+}
+
+.poem-work__title {
+color: var(--signal-light);
+font-size: 13px;
+font-weight: 700;
+letter-spacing: 0.08em;
+}
+
+.poem-work__body {
+margin: 18px 0 0;
+color: var(--ink);
+font-size: clamp(17px, 2vw, 24px);
+line-height: 1.95;
+white-space: pre-line;
+}
+
+.poem-work__note {
+max-width: 34ch;
+margin: 18px 0 0;
+color: var(--quiet);
+font-size: 12.5px;
+font-weight: 500;
+line-height: 1.7;
+}
+
+.protocol-note {
+max-width: 40ch;
+margin: 18px 0 0;
+padding-top: 16px;
+border-top: 1px solid rgb(var(--support-rgb) / 0.4);
+color: var(--signal-light);
+font-size: 13px;
+font-weight: 500;
+line-height: 1.7;
+min-height: 1.7em;
+}
+
+.field-map {
+position: relative;
+min-height: min(62vw, 640px);
+border-top: 1px solid rgb(var(--support-rgb) / 0.44);
+border-bottom: 1px solid rgb(var(--support-rgb) / 0.44);
+}
+
+.field-map::before {
+position: absolute;
+inset: 14% 12%;
+content: "";
+border: 1px solid rgb(199 244 100 / 0.14);
+border-radius: 50%;
+transform: rotate(-12deg) scaleX(1.3);
+}
+
+.field-map::after {
+position: absolute;
+top: 50%;
+left: 6%;
+width: 88%;
+height: 1px;
+content: "";
+background: linear-gradient(90deg, transparent, rgb(199 244 100 / 0.52), transparent);
+transform: rotate(-12deg);
+}
+
+.map-point {
+position: absolute;
+display: grid;
+gap: 4px;
+min-width: 116px;
+color: var(--ink);
+}
+
+.map-point::before {
+width: 10px;
+height: 10px;
+border: 1px solid var(--signal-border);
+border-radius: 50%;
+content: "";
+background: var(--signal);
+box-shadow: 0 0 0 8px rgb(199 244 100 / 0.08);
+}
+
+.map-point b {
+font-size: 15px;
+}
+
+.map-point span {
+color: var(--quiet);
+font-size: 12px;
+font-weight: 500;
+}
+
+.map-point:nth-child(1) { top: 12%; left: 8%; }
+.map-point:nth-child(2) { top: 30%; right: 10%; }
+.map-point:nth-child(3) { bottom: 12%; left: 28%; }
+.map-point:nth-child(4) { right: 25%; bottom: 20%; }
+
+.belief-field {
+position: relative;
+min-height: min(56vw, 600px);
+}
+
+.belief-field__core {
+position: absolute;
+top: 50%;
+left: 50%;
+display: grid;
+width: 160px;
+height: 160px;
+place-items: center;
+border: 1px solid var(--signal-border);
+border-radius: 50%;
+color: var(--ink);
+background: rgb(var(--structure-rgb) / 0.72);
+box-shadow: 0 0 0 18px rgb(199 244 100 / 0.035);
+text-align: center;
+transform: translate(-50%, -50%);
+}
+
+.belief-field__core::after {
+position: absolute;
+width: 8px;
+height: 8px;
+border-radius: 50%;
+content: "";
+background: var(--signal);
+box-shadow: 0 0 0 7px rgb(199 244 100 / 0.08);
+}
+
+.belief-node {
+position: absolute;
+display: grid;
+width: 170px;
+min-height: 118px;
+padding: 18px;
+align-content: center;
+border-left: 1px solid rgb(199 244 100 / 0.4);
+background: linear-gradient(90deg, rgb(var(--structure-rgb) / 0.64), transparent);
+color: var(--muted);
+}
+
+.belief-node b {
+color: var(--ink);
+font-size: 15px;
+line-height: 1.4;
+}
+
+.belief-node span {
+margin-top: 7px;
+color: var(--quiet);
+font-size: 12px;
+font-weight: 500;
+line-height: 1.5;
+}
+
+.belief-node:nth-child(2) { top: 6%; left: 8%; }
+.belief-node:nth-child(3) { top: 12%; right: 4%; }
+.belief-node:nth-child(4) { right: 8%; bottom: 6%; }
+.belief-node:nth-child(5) { bottom: 12%; left: 4%; }
+
+.trajectory {
+position: relative;
+min-height: min(58vw, 610px);
+padding: 30px 0;
+}
+
+.trajectory::before {
+position: absolute;
+top: 12%;
+bottom: 12%;
+left: 50%;
+width: 1px;
+content: "";
+background: linear-gradient(var(--signal), rgb(var(--journey-rgb) / 0.32));
+transform: rotate(20deg);
+}
+
+.trajectory-step {
+position: relative;
+display: grid;
+grid-template-columns: 70px minmax(0, 1fr);
+gap: 18px;
+width: min(380px, 45%);
+margin: 12px 0;
+padding: 16px 0;
+border-bottom: 1px solid rgb(var(--support-rgb) / 0.38);
+}
+
+.trajectory-step:nth-child(even) {
+margin-left: auto;
+}
+
+.trajectory-step__year {
+color: var(--signal);
+font-size: 12px;
+font-weight: 700;
+}
+
+.trajectory-step__title {
+color: var(--ink);
+font-size: 17px;
+font-weight: 650;
+}
+
+.trajectory-step__body {
+margin-top: 6px;
+color: var(--quiet);
+font-size: 13px;
+font-weight: 500;
+line-height: 1.6;
+}
+
+.data-field {
+display: grid;
+grid-template-columns: 0.8fr 1.2fr;
+gap: clamp(40px, 8vw, 130px);
+align-items: end;
+}
+
+.big-stat {
+color: var(--signal);
+font-family: "Cabinet Grotesk", "Clash Display", sans-serif;
+font-size: clamp(100px, 18vw, 280px);
+font-weight: 700;
+letter-spacing: -0.09em;
+line-height: 0.8;
+}
+
+.big-stat__label {
+max-width: 18ch;
+margin-top: 28px;
+color: var(--ink);
+font-size: 18px;
+line-height: 1.4;
+}
+
+.evidence-list {
+display: grid;
+gap: 22px;
+}
+
+.evidence-item {
+display: grid;
+grid-template-columns: 42px minmax(0, 1fr);
+gap: 14px;
+padding-bottom: 18px;
+border-bottom: 1px solid rgb(var(--support-rgb) / 0.4);
+}
+
+.evidence-item__index {
+color: var(--signal);
+font-size: 12px;
+font-weight: 500;
+}
+
+.evidence-item b {
+color: var(--ink);
+font-size: 17px;
+}
+
+.evidence-item p {
+margin: 5px 0 0;
+color: var(--quiet);
+font-size: 13px;
+font-weight: 500;
+line-height: 1.6;
+}
+
+.protocol-field {
+display: grid;
+grid-template-columns: 0.72fr 1.28fr;
+gap: clamp(40px, 8vw, 140px);
+align-items: center;
+}
+
+.protocol-list {
+display: grid;
+gap: 0;
+border-top: 1px solid rgb(var(--support-rgb) / 0.44);
+}
+
+.protocol-item {
+display: grid;
+grid-template-columns: 58px 1fr 24px;
+gap: 14px;
+align-items: center;
+padding: 20px 0;
+border-bottom: 1px solid rgb(var(--support-rgb) / 0.4);
+color: var(--quiet);
+background: transparent;
+text-align: left;
+transition: color 280ms ease, transform 280ms var(--ease), background 280ms ease;
+}
+
+.protocol-item:hover,
+.protocol-item:focus-visible,
+.protocol-item.is-active {
+color: var(--ink);
+background: linear-gradient(90deg, rgb(var(--source-rgb) / 0.4), transparent);
+outline: none;
+transform: translateX(14px);
+}
+
+.protocol-item__index {
+color: var(--signal);
+font-size: 12px;
+font-weight: 500;
+}
+
+.protocol-item__title {
+font-size: clamp(17px, 2vw, 24px);
+}
+
+.protocol-item__detail {
+color: var(--quiet);
+font-size: 12px;
+font-weight: 500;
+}
+
+.witness-field {
+display: grid;
+grid-template-columns: 0.7fr 1.3fr;
+gap: clamp(40px, 9vw, 160px);
+align-items: center;
+}
+
+.witness-list {
+display: grid;
+gap: 24px;
+}
+
+.witness {
+position: relative;
+padding: 0 0 24px 30px;
+border-bottom: 1px solid rgb(var(--support-rgb) / 0.4);
+}
+
+.witness::before {
+position: absolute;
+top: 5px;
+left: 0;
+width: 10px;
+height: 10px;
+border: 1px solid var(--signal-border);
+border-radius: 50%;
+content: "";
+background: var(--signal);
+box-shadow: 0 0 0 6px rgb(199 244 100 / 0.08);
+}
+
+.witness blockquote {
+max-width: 48ch;
+margin: 0;
+color: var(--ink);
+font-size: clamp(18px, 2vw, 27px);
+line-height: 1.5;
+}
+
+.witness cite {
+display: block;
+margin-top: 10px;
+color: var(--quiet);
+font-size: 12px;
+font-weight: 500;
+font-style: normal;
+}
+
+.quiet-field {
+display: grid;
+grid-template-columns: 0.8fr 1.2fr;
+gap: clamp(40px, 9vw, 160px);
+align-items: center;
+}
+
+.quiet-phrase {
+max-width: 16ch;
+color: var(--ink);
+font-family: "Cabinet Grotesk", "Clash Display", sans-serif;
+font-size: clamp(44px, 6vw, 88px);
+font-weight: 700;
+letter-spacing: -0.06em;
+line-height: 1.06;
+}
+
+.quiet-lines {
+display: grid;
+gap: 12px;
+}
+
+.quiet-line {
+display: grid;
+grid-template-columns: 1fr auto;
+gap: 20px;
+padding: 16px 0;
+border-bottom: 1px solid rgb(var(--support-rgb) / 0.4);
+color: var(--muted);
+}
+
+.quiet-line b {
+color: var(--ink);
+}
+
+.final-field {
+min-height: 100dvh;
+align-items: end;
+}
+
+.final-field .field-section__content {
+padding-bottom: 9vh;
+}
+
+.final-field .field-title {
+max-width: 10ch;
+}
+
+.final-line {
+position: absolute;
+top: 33%;
+right: 3%;
+width: 56%;
+height: 1px;
+background: linear-gradient(90deg, transparent, var(--signal), transparent);
+transform: rotate(-11deg);
+}
+
+.final-line::after {
+position: absolute;
+top: 50%;
+right: 14%;
+width: 16px;
+height: 16px;
+border: 1px solid var(--signal-border);
+border-radius: 50%;
+content: "";
+background: var(--signal);
+box-shadow: 0 0 0 8px rgb(199 244 100 / 0.1);
+transform: translateY(-50%);
+}
+
+.contact-line {
+display: flex;
+flex-wrap: wrap;
+gap: 18px 32px;
+margin-top: 48px;
+color: var(--muted);
+font-size: 13px;
+}
+
+.contact-line span {
+color: var(--signal-light);
+font-weight: 500;
+}

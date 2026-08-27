@@ -1,0 +1,35 @@
+/*
+* THESIS: 职业领导力与内在生命在同一个连续场域中交织，诗句不是附录，而是判断与行动的来源。
+* OWN-WORLD: #070A06 深墨绿基底、#10170B 森林层、#314322 橄榄中间层、#C7F464 黄绿信号；线、光和文字都从同一空间长出。
+* STORY: 访客沿着“外在建设”与“内在山”两条线，依次看见人物、经历、组织判断、工作方式和邀请。
+* FIRST VIEWPORT: 左侧是成熟领导者身份，右侧是可触发的内在信号场；没有图片占位、卡片墙或侧栏导航。
+* FORM: Experience surface，7/6/4；滚动显影、指针光场、原文展开和协议选择共同服务叙事。
+*/
+
+:root {
+--bg: #070a06;
+--ink: #dfe6d6;
+--muted: #a6b09a;
+--quiet: #718064;
+--deep: #0b100a;
+--forest: #10170b;
+--olive-black: #12190d;
+--olive-black-rgb: 18 25 13; /* used by the min-width:1920px ambient edge depth, see wide-screen section */
+--structure: #142412;
+--structure-rgb: 20 36 18;
+--middle: #314322;
+--middle-rgb: 49 67 34;
+--journey: #3d5230;
+--journey-rgb: 61 82 48;
+--source: #4f6a31;
+--source-rgb: 79 106 49;
+--support: #536133;
+--support-rgb: 83 97 51;
+--signal: #c7f464;
+--signal-light: #d7f685;
+--signal-border: #e8ff9e;
+--warm: #ca8650;
+--ease: cubic-bezier(0.2, 0, 0, 1);
+--pointer-x: 52vw;
+--pointer-y: 42vh;
+}
