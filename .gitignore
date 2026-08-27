@@ -15,3 +15,7 @@ dist/
 artifacts/
 test-results/
 playwright-report/
+.vercel
+
+# Vercel deploy temp scripts
+.vercel-tmp/
