@@ -25,9 +25,23 @@ const GROUPS = [
 // 文字在 390px 下必然互相重叠,可读性优先于视觉一致性。
 export const ANCHOR_MIN_WIDTH = 1024;
 
+// 当前活动的锚定实例(至多一个)。模块级导出供只读消费者使用。
+let current = null;
+
+// 只读接口:主节点 i 的当前视口坐标。用渲染帧内保存的 px / py 换算,
+// 与 SVG 节点同处一个数据源,因此读到的就是节点此刻的位置。
+// 锚定不可用(窄屏 / reduced-motion / 无 JS)时返回 null,调用方自行回退。
+export function getNodeViewport(nodeIndex) {
+  if (!current) return null;
+  return current.getNodeViewport(nodeIndex);
+}
+
 export function createAnchors(scene) {
   const entries = [];
   const triggers = [];
+  // 最近一帧的坐标换算函数,由 render 钩子写入,供 getNodeViewport 复用。
+  let latestPx = null;
+  let latestPy = null;
 
   GROUPS.forEach((group) => {
     const section = document.getElementById(group.section);
@@ -72,6 +86,8 @@ export function createAnchors(scene) {
 
   // 由 scene.render 每帧调用一次,与 SVG 写入同处一个 tick。
   function apply(px, py) {
+    latestPx = px;
+    latestPy = py;
     for (let i = 0; i < entries.length; i += 1) {
       const { el, nodeIndex, flipped } = entries[i];
       const n = scene.state.nodes[nodeIndex];
@@ -87,6 +103,12 @@ export function createAnchors(scene) {
     }
   }
 
+  function getNodeViewport(nodeIndex) {
+    const n = scene.state.nodes[nodeIndex];
+    if (!n || !latestPx) return null;
+    return { x: latestPx(n), y: latestPy(n) };
+  }
+
   function destroy() {
     triggers.forEach((t) => t.kill());
     entries.forEach(({ el }) => {
@@ -96,7 +118,12 @@ export function createAnchors(scene) {
     });
     entries.length = 0;
     triggers.length = 0;
+    latestPx = null;
+    latestPy = null;
+    if (current === api) current = null;
   }
 
-  return { apply, destroy, count: entries.length };
+  const api = { apply, destroy, getNodeViewport, count: entries.length };
+  current = api;
+  return api;
 }

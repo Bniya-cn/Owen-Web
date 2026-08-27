@@ -62,6 +62,8 @@
  *
  * 单一写者:JS 只写 --anchor-x / --anchor-y,transform 始终是
  * 样式表里的唯一声明,hover 缩放通过重写同一条声明来组合。
+ * --panel-dx / --panel-dy 是星群成框面板的接管位移(默认 0),
+ * 与锚定位在同一条声明里相加;关闭时删除变量即天然回到当前锚定位。
  * ───────────────────────────────────────────────────────────── */
 
 .scene-anchored .is-anchored {
@@ -75,7 +77,11 @@
   right: auto;
   bottom: auto;
   opacity: 0;
-  transform: translate3d(var(--anchor-x, 0px), var(--anchor-y, 0px), 0);
+  transform: translate3d(
+    calc(var(--anchor-x, 0px) + var(--panel-dx, 0px)),
+    calc(var(--anchor-y, 0px) + var(--panel-dy, 0px)),
+    0
+  );
   transition: opacity 420ms var(--ease);
   pointer-events: none;
   will-change: transform;
@@ -134,7 +140,11 @@
 
 /* 右半屏的文字翻到节点左侧,右对齐,否则会被视口右边缘裁切 */
 .scene-anchored .is-anchored.anchor-flip {
-  transform: translate3d(var(--anchor-x, 0px), var(--anchor-y, 0px), 0)
+  transform: translate3d(
+      calc(var(--anchor-x, 0px) + var(--panel-dx, 0px)),
+      calc(var(--anchor-y, 0px) + var(--panel-dy, 0px)),
+      0
+    )
     translateX(calc(-100% - 52px));
   text-align: right;
 }
@@ -144,7 +154,12 @@
 .scene-anchored .belief-field__core.is-anchored {
   width: max-content;
   margin: 0;
-  transform: translate3d(var(--anchor-x, 0px), var(--anchor-y, 0px), 0) translate(-50%, -50%);
+  transform: translate3d(
+      calc(var(--anchor-x, 0px) + var(--panel-dx, 0px)),
+      calc(var(--anchor-y, 0px) + var(--panel-dy, 0px)),
+      0
+    )
+    translate(-50%, -50%);
 }
 
 /* 容器装饰全部撤除:视觉主体已交给场景层,容器只剩下语义与占位。

@@ -1,7 +1,8 @@
 /*
- * 星群成框 / 文本星尘 —— 信念展开面板与残响星尘。
+ * 星群成框 / 文本星尘 —— 觉察/信念展开面板与残响星尘。
  *
- * 面板是 beliefs 章节的本地层(随章节滚动,不 fixed);
+ * 面板是章节的本地层(随章节滚动,不 fixed);person 与 beliefs 各一个实例,
+ * 选择器带 id 同特异性,覆盖 components.css 的 ".field-section > *"。
  * 框线由 SVG 线条构成,"由节点临时组织出的阅读区域"而非设计系统卡片;
  * 玻璃层深墨绿、雾面、轻微毛玻璃,不是白玻璃、不是 HUD。
  */
@@ -10,7 +11,8 @@
 /* components.css 的 ".field-section > *" 会强制章节直接子元素 position:relative,
  * 这里必须以更高特异性覆盖,否则面板会被 left 从流内位置平移、且占据网格轨道。 */
 
-#beliefs > .belief-panel {
+#beliefs > .belief-panel,
+#person > .belief-panel {
   position: absolute;
   z-index: 6;
   visibility: hidden;
@@ -21,11 +23,20 @@
 
 /* 状态切换必须与容器规则同特异性(带 id),否则永远赢不了 visibility/overflow */
 #beliefs > .belief-panel.is-open,
-#beliefs > .belief-panel.is-measuring {
+#beliefs > .belief-panel.is-measuring,
+#person > .belief-panel.is-open,
+#person > .belief-panel.is-measuring {
   visibility: visible;
 }
 
-#beliefs > .belief-panel.is-escaping {
+/* 展开期间接收点击(玻璃空白关闭 / 文本区 guard);整体不做 cursor: pointer */
+#beliefs > .belief-panel.is-open,
+#person > .belief-panel.is-open {
+  pointer-events: auto;
+}
+
+#beliefs > .belief-panel.is-escaping,
+#person > .belief-panel.is-escaping {
   overflow: visible;
 }
 
@@ -124,11 +135,22 @@
   will-change: transform, opacity;
 }
 
-.belief-panel__close-hint {
+/* ---------- 收起控件:一条极弱的按钮,不抢文本注意力 ---------- */
+
+.belief-panel__close {
   margin: 20px 0 0;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
   color: var(--quiet);
   font-size: 11px;
   letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: color 240ms var(--ease);
+}
+
+.belief-panel__close:hover {
+  color: var(--muted);
 }
 
 /* ---------- 面板展开期间,章节其余内容退暗(不消失) ---------- */
@@ -137,7 +159,8 @@
   transition: opacity 0.45s var(--ease);
 }
 
-.belief-panel-live .belief-field {
+.belief-panel-live .belief-field,
+.belief-panel-live .field-map {
   opacity: 0.34;
 }
 
@@ -145,9 +168,21 @@
   opacity: 0.3;
 }
 
+/* ---------- 窄屏未锚定:角元素用同构的变量位移跟随四角 ----------
+ * 锚定模式下位移已在 scene.css 的锚定 transform 声明里与 --anchor 相加;
+ * :not(.scene-anchored) 保证此规则只在未锚定（窄屏）时生效,避免后加载的
+ * 样式表在锚定模式下覆盖锚定 transform。仅在 .belief-panel-live 期间生效,
+ * 关闭后类名移除,不残留任何 transform。 */
+
+html:not(.scene-anchored) .belief-panel-live .belief-node,
+html:not(.scene-anchored) .belief-panel-live .field-map .map-point {
+  transform: translate3d(var(--panel-dx, 0px), var(--panel-dy, 0px), 0);
+}
+
 /* ---------- 残响星尘层:章节本地,随章节滚走 ---------- */
 
-#beliefs > .belief-residue-layer {
+#beliefs > .belief-residue-layer,
+#person > .belief-residue-layer {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -184,7 +219,7 @@
     font-size: clamp(30px, 8.4vw, 40px);
   }
 
-  .belief-panel__close-hint {
+  .belief-panel__close {
     display: none;
   }
 }

@@ -8,9 +8,10 @@
 // opacity 只有一个写者;动画结束立即撤掉,交互态仍归样式表。
 export function initOrbitSignals() {
   const stage = document.querySelector(".field-stage");
+  if (!stage) return;
   const live = document.querySelector(".field-stage__live");
   const cards = [...stage.querySelectorAll(".signal-card")];
-  if (!stage || !cards.length) return;
+  if (!cards.length) return;
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -29,14 +30,19 @@ export function initOrbitSignals() {
   }
 
   // 状态同步:与动效无关,任何路径下都必须先走完这一步。
-  function activate(card) {
+  // card 为 null 时还原四卡初始态(空白点击)。
+  function applyState(card) {
     cards.forEach((candidate) => {
-      const active = candidate === card;
+      const active = card !== null && candidate === card;
       candidate.classList.toggle("is-expanded", active);
-      candidate.classList.toggle("is-dimmed", !active);
+      candidate.classList.toggle("is-dimmed", card !== null && !active);
       candidate.setAttribute("aria-pressed", String(active));
     });
     if (live) {
+      if (!card) {
+        live.textContent = "";
+        return;
+      }
       const word = card.querySelector(".signal-card__word");
       const note = card.querySelector(".signal-card__note");
       live.textContent = `${word ? word.textContent : ""}。${note ? note.textContent : ""}`;
@@ -100,7 +106,7 @@ export function initOrbitSignals() {
   function flipTo(card, { gsap, Flip }) {
     stage.classList.add("is-flipping");
     const state = Flip.getState(cards);
-    activate(card);
+    applyState(card);
     Flip.from(state, {
       targets: cards,
       duration: 0.78,
@@ -109,23 +115,45 @@ export function initOrbitSignals() {
       zIndex: 4,
       onComplete: () => stage.classList.remove("is-flipping"),
     });
-    playDetail(card, gsap);
+    if (card) playDetail(card, gsap);
   }
+
+  // 把状态切换交给动效层(有 Flip 则补间,否则直接落位)。
+  function transitionTo(card) {
+    return loadFlip().then((motion) => {
+      if (motion) {
+        flipTo(card, motion);
+      } else {
+        applyState(card);
+      }
+    });
+  }
+
+  // 首次加载动效模块有异步窗口,窗口内的重复点击靠这个同步标志挡掉。
+  let pending = false;
 
   cards.forEach((card) => {
     card.addEventListener("click", () => {
+      if (pending) return;
       if (card.classList.contains("is-expanded")) return;
       // 飞行中的舞台不接受新目标,避免中途叠一次 Flip 造成状态抖动。
       if (stage.classList.contains("is-flipping")) return;
-      loadFlip().then((motion) => {
-        // Promise 窗口内的重复点击已由 is-expanded 守卫挡掉。
-        if (card.classList.contains("is-expanded")) return;
-        if (motion) {
-          flipTo(card, motion);
-        } else {
-          activate(card);
-        }
+      pending = true;
+      transitionTo(card).finally(() => {
+        pending = false;
       });
+    });
+  });
+
+  // 空白还原:点到舞台内、卡片外的区域时,若存在展开卡则收回到四卡初始态。
+  stage.addEventListener("click", (event) => {
+    if (pending) return;
+    if (event.target.closest(".signal-card")) return;
+    if (stage.classList.contains("is-flipping")) return;
+    if (!cards.some((card) => card.classList.contains("is-expanded"))) return;
+    pending = true;
+    transitionTo(null).finally(() => {
+      pending = false;
     });
   });
 }
