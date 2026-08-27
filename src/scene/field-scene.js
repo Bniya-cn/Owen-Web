@@ -69,6 +69,10 @@ export function createFieldScene() {
     pointerX: 0,
     pointerY: 0,
     parallax: 0,
+    // 交互覆盖层:星群不参与主时间线 morph(只变亮度),因此这里是一条独立通道。
+    // 唯一写者是信念面板模块;render 只做基础位与覆盖位的加权混合。
+    // overrides 为 Map: starIndex -> { x, y, o }(像素坐标)。
+    interaction: { weight: 0, starOverrides: new Map() },
   };
 
   let W = 0;
@@ -92,14 +96,26 @@ export function createFieldScene() {
   const renderHooks = [];
 
   function render() {
-    // 星群:亮度随 starDensity,位置带极轻微滚动视差
+    // 星群:亮度随 starDensity,位置带极轻微滚动视差;
+    // 交互覆盖生效时,被选中的星向覆盖目标位置插值(星群成框)。
+    const iw = state.interaction.weight;
+    const overrides = iw > 0.001 ? state.interaction.starOverrides : null;
     for (let i = 0; i < STARS.length; i += 1) {
       const s = STARS[i];
       const c = starEls[i];
-      c.setAttribute("cx", s.x * W + state.pointerX * s.depth * 10);
-      c.setAttribute("cy", s.y * H - state.parallax * s.depth * 40);
+      let x = s.x * W + state.pointerX * s.depth * 10;
+      let y = s.y * H - state.parallax * s.depth * 40;
+      let o = (0.25 + s.phase * 0.75) * state.starDensity;
+      const ov = overrides ? overrides.get(i) : null;
+      if (ov) {
+        x += (ov.x - x) * iw;
+        y += (ov.y - y) * iw;
+        o += (ov.o - o) * iw;
+      }
+      c.setAttribute("cx", x);
+      c.setAttribute("cy", y);
       c.setAttribute("r", s.r * S);
-      c.setAttribute("opacity", (0.25 + s.phase * 0.75) * state.starDensity);
+      c.setAttribute("opacity", o);
     }
 
     // 主节点

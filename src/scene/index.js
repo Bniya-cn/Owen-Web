@@ -2,6 +2,7 @@ import { setupGsap, prefersReducedMotion } from "../motion/gsap-setup.js";
 import { createFieldScene } from "./field-scene.js";
 import { createMasterTimeline, renderStaticFrame } from "./master-timeline.js";
 import { createAnchors, ANCHOR_MIN_WIDTH } from "./anchors.js";
+import { createConstellationPanel } from "../interactions/constellation-panel.js";
 
 // 常驻场景层入口。场景是"世界",不是逐屏装饰:它在 Hero 就存在,
 // 一直活到结尾,由主时间线连续 morph。
@@ -16,10 +17,13 @@ export function initScene() {
 
   if (prefersReducedMotion()) {
     renderStaticFrame(scene);
+    // 星群面板在 reduced-motion 下仍可用:无运动的稳定形态(静态框+直接落位星尘)
+    createConstellationPanel(scene);
     return scene;
   }
 
   createMasterTimeline(scene);
+  createConstellationPanel(scene);
 
   // 锚定只在横向空间足够时启用。窄屏下固定定位的文字必然互相重叠,
   // 可读性优先——那里保持原有的常规文档流。

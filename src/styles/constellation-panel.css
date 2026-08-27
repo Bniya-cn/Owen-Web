@@ -1,0 +1,199 @@
+/*
+ * 星群成框 / 文本星尘 —— 信念展开面板与残响星尘。
+ *
+ * 面板是 beliefs 章节的本地层(随章节滚动,不 fixed);
+ * 框线由 SVG 线条构成,"由节点临时组织出的阅读区域"而非设计系统卡片;
+ * 玻璃层深墨绿、雾面、轻微毛玻璃,不是白玻璃、不是 HUD。
+ */
+
+/* ---------- 面板容器 ---------- */
+/* components.css 的 ".field-section > *" 会强制章节直接子元素 position:relative,
+ * 这里必须以更高特异性覆盖,否则面板会被 left 从流内位置平移、且占据网格轨道。 */
+
+#beliefs > .belief-panel {
+  position: absolute;
+  z-index: 6;
+  visibility: hidden;
+  overflow: hidden; /* 逃逸时切到 visible,让关键词飞出框外 */
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* 状态切换必须与容器规则同特异性(带 id),否则永远赢不了 visibility/overflow */
+#beliefs > .belief-panel.is-open,
+#beliefs > .belief-panel.is-measuring {
+  visibility: visible;
+}
+
+#beliefs > .belief-panel.is-escaping {
+  overflow: visible;
+}
+
+/* ---------- 框架:角点 + 边线 ---------- */
+
+.belief-panel__frame {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.belief-panel__edge {
+  fill: none;
+  stroke: rgb(199 244 100 / 0.34);
+  stroke-width: 1;
+}
+
+.belief-panel__corner {
+  fill: var(--signal);
+  filter: drop-shadow(0 0 6px rgb(199 244 100 / 0.55));
+}
+
+.belief-panel__corner.is-source {
+  fill: var(--signal-border);
+  filter: drop-shadow(0 0 10px rgb(199 244 100 / 0.8));
+}
+
+/* ---------- 玻璃承载层:略内缩于框线 ---------- */
+
+.belief-panel__glass {
+  position: absolute;
+  inset: 12px;
+  background: linear-gradient(135deg, rgb(14 22 14 / 0.62), rgb(8 14 9 / 0.4));
+  backdrop-filter: blur(18px) saturate(108%);
+  -webkit-backdrop-filter: blur(18px) saturate(108%);
+  border: 1px solid rgb(199 244 100 / 0.1);
+  box-shadow:
+    inset 0 1px 0 rgb(232 255 158 / 0.05),
+    inset 0 0 42px rgb(83 97 51 / 0.06);
+}
+
+/* ---------- 文本 ---------- */
+
+.belief-panel__content {
+  position: relative;
+  z-index: 2;
+  padding: clamp(26px, 4.6vw, 46px) clamp(24px, 4vw, 42px);
+}
+
+.belief-panel__kicker {
+  display: block;
+  margin-bottom: 14px;
+  color: var(--signal);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.belief-panel__title {
+  margin: 0 0 18px;
+  color: var(--ink);
+  font-size: clamp(32px, 3.4vw, 52px);
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: 0.01em;
+}
+
+.belief-panel__title .belief-panel__line {
+  display: block;
+}
+
+.belief-panel__body {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(17px, 1.35vw, 21px);
+  line-height: 1.72;
+}
+
+.belief-panel__body .belief-panel__line {
+  display: block;
+}
+
+.belief-panel__body .belief-panel__line:last-child {
+  margin-top: 14px;
+  color: var(--signal-light);
+  font-size: clamp(19px, 1.6vw, 25px);
+}
+
+/* 逃逸关键词:行内块,才能承接 transform */
+.belief-token {
+  display: inline-block;
+  color: var(--signal-light);
+  font-weight: 600;
+  will-change: transform, opacity;
+}
+
+.belief-panel__close-hint {
+  margin: 20px 0 0;
+  color: var(--quiet);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+/* ---------- 面板展开期间,章节其余内容退暗(不消失) ---------- */
+
+.belief-panel-live .story-grid > * {
+  transition: opacity 0.45s var(--ease);
+}
+
+.belief-panel-live .belief-field {
+  opacity: 0.34;
+}
+
+.belief-panel-live .story-copy {
+  opacity: 0.3;
+}
+
+/* ---------- 残响星尘层:章节本地,随章节滚走 ---------- */
+
+#beliefs > .belief-residue-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.belief-residue {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 8px rgb(199 244 100 / 0.5);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* ---------- 触发器激活态(与 details[open] 原生态等价) ---------- */
+
+.source-note.is-open summary::after {
+  transform: rotate(45deg);
+}
+
+/* ---------- 移动端 ---------- */
+
+@media (max-width: 840px) {
+  .belief-panel__glass {
+    backdrop-filter: blur(10px) saturate(106%);
+    -webkit-backdrop-filter: blur(10px) saturate(106%);
+  }
+
+  .belief-panel__title {
+    font-size: clamp(30px, 8.4vw, 40px);
+  }
+
+  .belief-panel__close-hint {
+    display: none;
+  }
+}
+
+/* ---------- reduced-motion:静态形态,装饰让位给可读性 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .belief-panel,
+  .belief-panel-live .story-grid > * {
+    transition: none;
+  }
+}
