@@ -73,109 +73,273 @@ font-size: 12px;
 font-weight: 500;
 }
 
-.field-orbit {
+/* 首屏信号舞台:四张信号卡片驻留四角,选中的卡片飞到中心放大展开,
+ * 其余缩小退让;再点击缩小的卡片即切换。动效层用 GSAP Flip 接管
+ * 位移时会给舞台加 .is-flipping 关闭 CSS transition,保证单一写者;
+ * 无动效的静态回退靠下方 transition/visibility 直接完成形态切换。 */
+.field-stage {
 position: absolute;
 right: 3%;
 bottom: 6%;
 width: min(45vw, 560px);
 aspect-ratio: 1;
-border: 1px solid rgb(199 244 100 / 0.18);
-border-radius: 50%;
-opacity: 0.9;
+opacity: 0.96;
 }
 
-.field-orbit::before,
-.field-orbit::after {
+/* 底层双环只是安静的轨道暗示,不再承担交互。 */
+.field-stage::before,
+.field-stage::after {
 position: absolute;
-inset: 12%;
-border: 1px solid rgb(199 244 100 / 0.12);
+inset: 5%;
+border: 1px solid rgb(199 244 100 / 0.09);
 border-radius: 50%;
 content: "";
-}
-
-.field-orbit::after {
-inset: 31%;
-border-color: rgb(199 244 100 / 0.2);
-}
-
-.field-node {
-position: absolute;
-display: grid;
-width: 96px;
-height: 96px;
-place-items: center;
-border: 1px solid rgb(199 244 100 / 0.32);
-border-radius: 50%;
-color: var(--ink);
-background: rgb(16 23 11 / 0.62);
-font-size: 12px;
-font-weight: 500;
-letter-spacing: 0.06em;
-text-align: center;
-transition: transform 360ms var(--ease), border-color 360ms ease, background 360ms ease;
-}
-
-.field-node:hover,
-.field-node:focus-visible,
-.field-node.is-active {
-border-color: var(--signal-border);
-background: rgb(var(--source-rgb) / 0.5);
-outline: none;
-transform: scale(1.08);
-}
-
-/* One-shot ripple on the orbit rings when a node is selected — not a looping
-* ambient pulse, see motion doctrine: "motion must perform, not breathe." */
-.field-orbit.is-pulsing::before,
-.field-orbit.is-pulsing::after {
-animation: orbit-pulse 600ms var(--ease);
-}
-
-@keyframes orbit-pulse {
-0% { transform: scale(1); }
-40% { transform: scale(1.02); }
-100% { transform: scale(1); }
-}
-
-.field-orbit__note {
-position: absolute;
-left: 50%;
-bottom: 11%;
-transform: translateX(-50%);
-width: min(72%, 230px);
-margin: 0;
-color: var(--ink);
-font-size: 12.5px;
-line-height: 1.6;
-text-align: center;
-opacity: 0;
-transition: opacity 260ms var(--ease);
 pointer-events: none;
 }
 
-.field-orbit__note.is-shown {
-opacity: 1;
+.field-stage::after {
+inset: 24%;
+border-color: rgb(199 244 100 / 0.13);
 }
 
-.field-node::after {
+.signal-deck {
 position: absolute;
-width: 8px;
-height: 8px;
-border-radius: 50%;
-content: "";
-background: var(--signal);
-box-shadow: 0 0 0 6px rgb(199 244 100 / 0.08);
+inset: 0;
+display: grid;
+grid-template-columns: repeat(2, minmax(0, 1fr));
+grid-template-rows: repeat(2, minmax(0, 1fr));
+gap: clamp(14px, 4%, 26px);
 }
 
-.field-node:nth-child(1) { top: -3%; left: 43%; }
-.field-node:nth-child(2) { top: 38%; right: -4%; }
-.field-node:nth-child(3) { bottom: 6%; left: 34%; }
-.field-node:nth-child(4) { top: 44%; left: -4%; }
+/* 显式占格:展开的卡片脱离文档流后,其余卡片不被重新流式排布。 */
+.signal-card:nth-child(1) { grid-area: 1 / 1; }
+.signal-card:nth-child(2) { grid-area: 1 / 2; }
+.signal-card:nth-child(3) { grid-area: 2 / 1; }
+.signal-card:nth-child(4) { grid-area: 2 / 2; }
 
-.field-node:nth-child(1)::after { right: 8px; bottom: 6px; }
-.field-node:nth-child(2)::after { bottom: 9px; left: 8px; }
-.field-node:nth-child(3)::after { top: 8px; right: 7px; }
-.field-node:nth-child(4)::after { top: 10px; right: 8px; }
+.signal-card {
+position: relative;
+display: flex;
+flex-direction: column;
+gap: 9px;
+align-items: center;
+justify-content: center;
+padding: 16px;
+border: 1px solid rgb(199 244 100 / 0.24);
+border-radius: 20px;
+color: var(--ink);
+background:
+radial-gradient(120% 90% at 50% 0%, rgb(var(--structure-rgb) / 0.55), transparent 62%),
+linear-gradient(165deg, rgb(16 23 11 / 0.9), rgb(11 16 10 / 0.8));
+cursor: pointer;
+transition:
+transform 700ms var(--ease),
+opacity 460ms ease,
+border-color 320ms ease,
+box-shadow 320ms ease;
+}
+
+.signal-card:not(.is-expanded):hover,
+.signal-card:not(.is-expanded):focus-visible {
+border-color: var(--signal-border);
+outline: none;
+transform: translateY(-4px);
+box-shadow: 0 14px 34px rgb(0 0 0 / 0.36), 0 0 26px rgb(199 244 100 / 0.12);
+}
+
+.signal-card__frame {
+width: 54%;
+aspect-ratio: 1;
+overflow: hidden;
+border: 1px solid rgb(199 244 100 / 0.3);
+border-radius: 50%;
+box-shadow: 0 0 26px rgb(199 244 100 / 0.08);
+}
+
+.signal-card__frame img {
+width: 100%;
+height: 100%;
+object-fit: cover;
+display: block;
+}
+
+/* 卡片内所有装饰层一律不吃指针事件:点击必须落在 button 本体上,
+ * 否则子元素会成为事件目标,展开卡片的穿透逻辑也会被内层拦截。 */
+.signal-card__frame,
+.signal-card__frame img,
+.signal-card__word,
+.signal-card__en,
+.signal-card__detail,
+.signal-card__ring {
+pointer-events: none;
+}
+
+.signal-card__word {
+font-family: "Kaiti SC", "STKaiti", "KaiTi", "PingFang SC", serif;
+font-size: 18px;
+font-weight: 700;
+letter-spacing: 0.3em;
+padding-left: 0.3em; /* 抵消末字字距,保持视觉居中 */
+}
+
+.signal-card__en {
+color: var(--quiet);
+font-size: 10px;
+font-weight: 500;
+letter-spacing: 0.24em;
+text-transform: uppercase;
+}
+
+/* 退让态:缩小、降饱和,但仍可点击用于切换。 */
+.signal-card.is-dimmed {
+opacity: 0.42;
+transform: scale(0.84);
+filter: saturate(0.72);
+}
+
+.signal-card.is-dimmed:hover,
+.signal-card.is-dimmed:focus-visible {
+opacity: 0.82;
+}
+
+/* 展开态:脱离网格落位舞台中心,图腾铺成背景,细节层接管内容。
+ * 展开卡片自身没有点击行为,放开指针事件让点击能穿透到被它遮住的
+ * 四角缩小卡片——"点缩小的卡片即切换"必须始终可达。 */
+.signal-card.is-expanded {
+pointer-events: none;
+position: absolute;
+top: 50%;
+left: 50%;
+z-index: 4;
+/* 占满整个网格区域,让下方 width:72% 稳定以整块舞台为参照解析,
+ * 否则绝对定位的网格项会退化到单个网格单元(移动端会明显偏小)。 */
+grid-area: 1 / 1 / -1 / -1;
+width: 72%;
+aspect-ratio: 0.86;
+padding: 0;
+transform: translate(-50%, -50%);
+border-color: rgb(232 255 158 / 0.5);
+border-radius: 26px;
+background:
+radial-gradient(120% 88% at 50% 10%, rgb(var(--structure-rgb) / 0.94), transparent 64%),
+linear-gradient(168deg, rgb(13 20 9 / 0.96), rgb(7 10 6 / 0.97));
+box-shadow:
+0 26px 80px rgb(0 0 0 / 0.52),
+0 0 64px rgb(199 244 100 / 0.13);
+}
+
+.signal-card.is-expanded .signal-card__frame {
+position: absolute;
+inset: 0;
+width: auto;
+border: 0;
+border-radius: 26px;
+opacity: 0.3;
+box-shadow: none;
+}
+
+.signal-card.is-expanded .signal-card__word,
+.signal-card.is-expanded .signal-card__en {
+opacity: 0;
+}
+
+/* Flip 运行期间关闭 CSS transition,内联样式是唯一写者。 */
+.field-stage.is-flipping .signal-card {
+transition: none;
+}
+
+.signal-card__detail {
+position: absolute;
+inset: 0;
+z-index: 1;
+display: grid;
+place-content: center;
+gap: 14px;
+padding: clamp(18px, 6%, 34px);
+text-align: center;
+opacity: 0;
+visibility: hidden;
+transition: opacity 520ms var(--ease) 300ms, visibility 0s linear 820ms;
+pointer-events: none;
+}
+
+.signal-card.is-expanded .signal-card__detail {
+opacity: 1;
+visibility: visible;
+transition: opacity 520ms var(--ease) 300ms;
+}
+
+/* 艺术字:优先本地书法字体(macOS 的行楷/楷体),缺失时退回衬线。 */
+.signal-card__art {
+display: block;
+color: var(--signal-light);
+font-family: "Xingkai SC", "STXingkai", "Kaiti SC", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+font-size: clamp(48px, 5.4vw, 76px);
+font-weight: 700;
+letter-spacing: 0.18em;
+padding-left: 0.18em;
+line-height: 1.1;
+text-shadow:
+0 0 26px rgb(199 244 100 / 0.5),
+0 0 72px rgb(199 244 100 / 0.22);
+}
+
+/* JS 逐字包裹后的字符:默认继承终态,静态回退不受影响。 */
+.signal-card__art span {
+display: inline-block;
+}
+
+.signal-card__art-en {
+color: var(--signal);
+font-size: 11px;
+font-weight: 700;
+letter-spacing: 0.34em;
+text-transform: uppercase;
+opacity: 0.85;
+}
+
+.signal-card__note {
+max-width: 26ch;
+margin: 0 auto;
+color: var(--muted);
+font-size: 13px;
+font-weight: 500;
+line-height: 1.85;
+}
+
+/* 一次性涟漪:仅在卡片新获得 .is-expanded 时播放,不做循环脉冲。 */
+.signal-card__ring {
+position: absolute;
+top: 50%;
+left: 50%;
+width: 42%;
+aspect-ratio: 1;
+border: 1px solid rgb(199 244 100 / 0.42);
+border-radius: 50%;
+opacity: 0;
+transform: translate(-50%, -50%);
+pointer-events: none;
+}
+
+.signal-card.is-expanded .signal-card__ring {
+animation: signal-ring 900ms var(--ease) 320ms both;
+}
+
+@keyframes signal-ring {
+0% { transform: translate(-50%, -50%) scale(0.42); opacity: 0.85; }
+100% { transform: translate(-50%, -50%) scale(1.9); opacity: 0; }
+}
+
+/* 读屏播报区:视觉隐藏,仅承载切换时的说明文本。 */
+.field-stage__live {
+position: absolute;
+width: 1px;
+height: 1px;
+margin: -1px;
+overflow: hidden;
+clip-path: inset(50%);
+white-space: nowrap;
+}
 
 /* KNOWN DEAD CSS: .field-rail / .field-rail__light have no matching element in the
 * body at any breakpoint (confirmed by full-file search). Left in place untouched

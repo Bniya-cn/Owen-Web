@@ -6,12 +6,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 // 只是位置改由场景驱动。
 //
 // 单一写者:这里只写 --anchor-x / --anchor-y 两个 CSS 变量,
-// transform 本身仍是样式表里唯一的一条声明,因此 .field-node 的
-// hover scale 可以与锚定位移安全组合,不会互相覆盖。
+// transform 本身仍是样式表里唯一的一条声明,因此锚定文字的其它
+// transform 交互(如 hover)可以与锚定位移安全组合,不会互相覆盖。
 
-// who 章刻意不在此列:首屏的 .field-orbit 本身就是"轨道"最恰当的 DOM 表达,
-// 且承担可点击的信号选择与 aria-live 说明。锚定它会牵动 note 定位、hover
-// 缩放与命中区域,收益不抵风险。首屏改由场景节点降低亮度来退居背景。
+// who 章刻意不在此列:首屏的 .field-stage 本身就是"轨道"最恰当的 DOM 表达,
+// 且承担可点击的信号选择与 aria-live 说明。锚定它会牵动展开卡片的定位、
+// hover 位移与命中区域,收益不抵风险。首屏改由场景节点降低亮度来退居背景。
 const GROUPS = [
   { section: "person", selector: ".map-point", nodes: [0, 1, 2, 3] },
   { section: "journey", selector: ".trajectory-step", nodes: [0, 1, 2, 3] },

@@ -45,22 +45,17 @@ left: 0;
 height: 36px;
 }
 
-.field-orbit {
+.field-stage {
 position: relative;
 right: auto;
 bottom: auto;
-width: min(84vw, 520px);
-margin: 70px auto 0;
+width: min(88vw, 500px);
+margin: 64px auto 0;
 }
 
-/* Mobile: the ring no longer has a fixed-size box to keep the note pinned inside
-* without risking clipping at 320/360px, so the note drops to normal document
-* flow below the ring instead of staying absolutely positioned inside it. */
-.field-orbit__note {
-position: static;
-transform: none;
-width: auto;
-margin-top: 20px;
+/* Mobile: 展开卡片内文字改用相对字号,避免 320/360px 下溢出卡片。 */
+.signal-card__art {
+font-size: clamp(38px, 12vw, 60px);
 }
 
 .story-grid,
@@ -99,9 +94,13 @@ order: 1;
 min-height: clamp(430px, 115vw, 520px);
 }
 
-.field-node {
-width: clamp(76px, 23vw, 96px);
-height: clamp(76px, 23vw, 96px);
+.signal-card {
+padding: 12px;
+gap: 7px;
+}
+
+.signal-card__word {
+font-size: 16px;
 }
 
 .belief-node {
@@ -191,7 +190,7 @@ padding-top: clamp(70px, 9vw, 168px);
 padding-bottom: clamp(70px, 9vw, 168px);
 }
 
-.field-orbit {
+.field-stage {
 width: min(45vw, 627px);
 }
 

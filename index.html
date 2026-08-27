@@ -41,12 +41,54 @@
               <span class="field-marker"><span class="field-marker__name">进化</span><span class="field-marker__detail">在未知中持续学习</span></span>
             </div>
           </div>
-          <div class="field-orbit" aria-label="领导者内在信号场">
-            <button class="field-node" type="button" data-signal="Stillness" data-note="静止不是停滞，而是在安静中保留行动的力量。" aria-pressed="false">定静</button>
-            <button class="field-node" type="button" data-signal="Goodwill" data-note="善意可以跨越文化、语言、性别与职位。" aria-pressed="false">善意</button>
-            <button class="field-node" type="button" data-signal="Learning" data-note="把每一项工作都当成一次有趣的探索，享受过程。" aria-pressed="false">进化</button>
-            <button class="field-node" type="button" data-signal="Coherence" data-note="所思、所感、所愿高度一致，才有真正的内在相干。" aria-pressed="false">同频</button>
-            <p class="field-orbit__note" aria-live="polite"></p>
+          <div class="field-stage" aria-label="领导者内在信号场">
+            <div class="signal-deck" role="group" aria-label="四个内在信号">
+              <button class="signal-card" type="button" data-signal="Stillness" aria-pressed="false">
+                <span class="signal-card__frame" aria-hidden="true"><img src="./assets/images/signal-stillness.webp" alt="" loading="eager" decoding="async" /></span>
+                <b class="signal-card__word">定静</b>
+                <span class="signal-card__en">Stillness</span>
+                <span class="signal-card__detail" aria-hidden="true">
+                  <span class="signal-card__ring"></span>
+                  <b class="signal-card__art">定静</b>
+                  <span class="signal-card__art-en">Stillness</span>
+                  <span class="signal-card__note">静止不是停滞，而是在安静中保留行动的力量。</span>
+                </span>
+              </button>
+              <button class="signal-card" type="button" data-signal="Goodwill" aria-pressed="false">
+                <span class="signal-card__frame" aria-hidden="true"><img src="./assets/images/signal-goodwill.webp" alt="" loading="eager" decoding="async" /></span>
+                <b class="signal-card__word">善意</b>
+                <span class="signal-card__en">Goodwill</span>
+                <span class="signal-card__detail" aria-hidden="true">
+                  <span class="signal-card__ring"></span>
+                  <b class="signal-card__art">善意</b>
+                  <span class="signal-card__art-en">Goodwill</span>
+                  <span class="signal-card__note">善意可以跨越文化、语言、性别与职位。</span>
+                </span>
+              </button>
+              <button class="signal-card" type="button" data-signal="Learning" aria-pressed="false">
+                <span class="signal-card__frame" aria-hidden="true"><img src="./assets/images/signal-learning.webp" alt="" loading="eager" decoding="async" /></span>
+                <b class="signal-card__word">进化</b>
+                <span class="signal-card__en">Learning</span>
+                <span class="signal-card__detail" aria-hidden="true">
+                  <span class="signal-card__ring"></span>
+                  <b class="signal-card__art">进化</b>
+                  <span class="signal-card__art-en">Learning</span>
+                  <span class="signal-card__note">把每一项工作都当成一次有趣的探索，享受过程。</span>
+                </span>
+              </button>
+              <button class="signal-card" type="button" data-signal="Coherence" aria-pressed="false">
+                <span class="signal-card__frame" aria-hidden="true"><img src="./assets/images/signal-coherence.webp" alt="" loading="eager" decoding="async" /></span>
+                <b class="signal-card__word">同频</b>
+                <span class="signal-card__en">Coherence</span>
+                <span class="signal-card__detail" aria-hidden="true">
+                  <span class="signal-card__ring"></span>
+                  <b class="signal-card__art">同频</b>
+                  <span class="signal-card__art-en">Coherence</span>
+                  <span class="signal-card__note">所思、所感、所愿高度一致，才有真正的内在相干。</span>
+                </span>
+              </button>
+            </div>
+            <p class="field-stage__live" aria-live="polite"></p>
           </div>
         </div>
       </section>

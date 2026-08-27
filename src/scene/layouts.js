@@ -22,7 +22,7 @@ const L = (nodes, extra = {}) => ({
 });
 
 export const CHAPTER_LAYOUTS = {
-  // 轨道:节点绕首屏右侧的信号环排布,与 DOM 的 .field-orbit 同构。
+  // 轨道:节点绕首屏右侧的信号舞台排布,与 DOM 的 .field-stage 四角卡片同构。
   // 首屏由 DOM 的信号环主导(它可点击、带说明),因此场景节点在这里
   // 刻意压暗到近乎背景,只提供"世界已经在了"的暗示,不与之争夺注意力。
   who: L(
